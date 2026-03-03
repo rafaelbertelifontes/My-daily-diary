@@ -4,319 +4,248 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Meu Diário Semanal</title>
-  <link rel="manifest" href="/My-daily-diary/manifest.json"/>
+  <link rel="manifest" href="manifest.json"/>
   <meta name="theme-color" content="#1a3a5c"/>
-  <meta name="mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-title" content="Diário Semanal"/>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Georgia,serif;background:#f5f5f0;color:#222;min-height:100vh}
-    button{font-family:Georgia,serif;cursor:pointer}
-    textarea,select{font-family:Georgia,serif}
-
-    #app{max-width:600px;margin:0 auto;padding:16px}
-
-    /* HEADER */
-    .masthead{font-size:1.6em;font-weight:700;text-align:center;letter-spacing:2px;margin-bottom:2px}
-    .week-label{text-align:center;color:#666;font-size:12px;font-style:italic;margin-bottom:16px}
-
-    /* STATS */
+    body{font-family:Georgia,serif;background:#f5f5f0;color:#222;padding:16px;max-width:600px;margin:0 auto}
+    h1{font-size:1.6em;font-weight:700;text-align:center;letter-spacing:2px;margin-bottom:4px;margin-top:16px}
+    .sub{text-align:center;color:#666;font-size:12px;font-style:italic;margin-bottom:20px}
     .stats{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
-    .stat{background:#f0f0f0;border-radius:8px;padding:10px 16px;text-align:center;min-width:70px}
+    .stat{background:#f0f0f0;border-radius:8px;padding:10px 16px;text-align:center}
     .stat strong{display:block;font-size:1.3em}
     .stat small{font-size:11px;color:#666}
-
-    /* DAYS GRID */
-    .days-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
-    .day-btn{border-radius:8px;padding:12px;border:2px solid transparent;text-align:left;display:flex;flex-direction:column;gap:3px}
-    .day-btn .day-name{font-weight:700;font-size:14px}
-    .day-btn .day-date{font-size:11px;opacity:0.8}
-    .day-btn .day-count{font-size:11px;opacity:0.85}
-
-    /* FORM */
-    .back-btn{background:none;border:none;color:#555;font-size:14px;margin-bottom:12px;padding:0}
-    .screen-title{font-size:1.3em;font-weight:700;margin-bottom:2px}
-    select.cat-select{width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;font-size:14px;margin-bottom:10px}
-    textarea.entry-text{width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;font-size:14px;resize:vertical;margin-bottom:10px;min-height:80px}
-
-    /* PHOTO */
-    .photo-area{border:2px dashed #ccc;border-radius:8px;padding:16px;margin-bottom:12px;text-align:center;background:#fafafa;position:relative}
-    .photo-area input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
-    .photo-area .icon{font-size:28px;margin-bottom:4px}
-    .photo-area .hint{font-size:13px;color:#888}
-    .photo-area .hint2{font-size:11px;color:#aaa;margin-top:3px}
-    .photo-preview{position:relative;display:inline-block;margin-top:8px}
-    .photo-preview img{width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #ddd}
-    .photo-preview .remove-photo{position:absolute;top:-6px;right:-6px;background:#cc0000;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;display:flex;align-items:center;justify-content:center}
-
-    /* BUTTONS */
-    .btn-primary{background:#1a3a5c;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;margin-bottom:8px}
-    .btn-green{background:#2c5f2e;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;margin-top:12px}
-    .btn-red{background:#8b0000;color:#fff;border:none;border-radius:6px;padding:14px;font-size:16px;width:100%}
-    .btn-export{background:#6b3a00;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;margin-top:16px}
-    .btn:disabled{background:#ccc;cursor:not-allowed}
-
-    /* ENTRIES */
-    .entries-header{font-size:1em;font-weight:700;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid #eee}
-    .entry-item{display:flex;align-items:flex-start;gap:8px;background:#f9f9f9;border-radius:6px;padding:10px;margin-bottom:8px}
-    .cat-badge{background:#1a3a5c;color:#fff;border-radius:4px;padding:2px 6px;font-size:11px;white-space:nowrap;margin-top:2px;flex-shrink:0}
-    .entry-content{flex:1;font-size:14px}
-    .entry-photo{display:block;max-width:120px;border-radius:4px;margin-top:6px}
-    .remove-btn{background:none;border:none;color:#bbb;font-size:18px;padding:0;flex-shrink:0}
-
-    /* REPORT */
-    .report-box{background:#fafaf8;border-radius:8px;padding:20px;border-left:4px solid #2c5f2e;margin-top:12px}
-    .report-para{text-align:justify;line-height:1.8;margin-bottom:14px;font-size:15px}
-    .section-head{font-size:1em;font-weight:700;margin-top:24px;margin-bottom:8px;border-bottom:2px solid #333;padding-bottom:4px;letter-spacing:1px}
-    .photo-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
-    .photo-grid img{width:calc(50% - 3px);border-radius:6px;object-fit:cover;max-height:180px}
-
-    /* LOADING */
-    .loading{text-align:center;padding:40px;color:#666;font-size:16px}
-
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+    .day{border-radius:8px;padding:12px;border:none;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:3px}
+    .day b{font-size:14px}
+    .day span{font-size:11px;opacity:0.85}
+    button.main{background:#8b0000;color:#fff;border:none;border-radius:6px;padding:14px;font-size:16px;width:100%;cursor:pointer;font-family:Georgia,serif}
+    button.main:disabled{background:#ccc;cursor:not-allowed}
     hr{border:none;border-top:1px solid #ddd;margin:20px 0}
-    .empty-msg{text-align:center;color:#999;font-size:13px;margin-top:8px}
+    p.hint{text-align:center;color:#999;font-size:13px;margin-top:8px}
+    .back{background:none;border:none;color:#555;font-size:14px;cursor:pointer;margin-bottom:12px;font-family:Georgia,serif}
+    .title{font-size:1.3em;font-weight:700;margin-bottom:2px}
+    select,textarea{width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;font-size:14px;font-family:Georgia,serif;margin-bottom:10px}
+    textarea{resize:vertical;min-height:80px}
+    .photo-box{border:2px dashed #ccc;border-radius:8px;padding:16px;text-align:center;background:#fafafa;margin-bottom:12px;position:relative;min-height:80px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
+    .photo-box input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+    .photo-box p{font-size:13px;color:#888;pointer-events:none}
+    .photo-box img{width:80px;height:80px;object-fit:cover;border-radius:6px}
+    button.add{background:#1a3a5c;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif;margin-bottom:8px}
+    button.add:disabled{background:#ccc}
+    .ev-list{margin-top:16px}
+    .ev-list h3{font-size:1em;font-weight:700;margin-bottom:8px;border-bottom:1px solid #eee;padding-bottom:6px}
+    .ev{display:flex;gap:8px;background:#f9f9f9;border-radius:6px;padding:10px;margin-bottom:8px;align-items:flex-start}
+    .badge{background:#1a3a5c;color:#fff;border-radius:4px;padding:2px 6px;font-size:11px;white-space:nowrap;flex-shrink:0}
+    .ev-text{flex:1;font-size:14px}
+    .ev-text img{display:block;max-width:100px;border-radius:4px;margin-top:6px}
+    .del{background:none;border:none;color:#bbb;font-size:18px;cursor:pointer}
+    button.green{background:#2c5f2e;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif;margin-top:12px}
+    .report{background:#fafaf8;border-radius:8px;padding:20px;border-left:4px solid #2c5f2e;margin-top:12px}
+    .report p{text-align:justify;line-height:1.8;margin-bottom:14px;font-size:15px}
+    .report h3{font-size:1em;font-weight:700;margin-top:24px;margin-bottom:8px;border-bottom:2px solid #333;padding-bottom:4px}
+    .photos{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+    .photos img{width:calc(50% - 3px);border-radius:6px;object-fit:cover;max-height:180px}
+    button.export{background:#6b3a00;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif;margin-top:16px}
+    .loading{text-align:center;padding:40px;color:#666;font-size:16px}
+    .masthead{font-size:1.8em;font-weight:700;text-align:center;letter-spacing:2px;margin-bottom:4px}
+    .sec{font-size:1em;font-weight:700;margin-top:24px;margin-bottom:8px;border-bottom:2px solid #333;padding-bottom:4px;letter-spacing:1px}
   </style>
 </head>
 <body>
-<div id="app"></div>
-
+<div id="root"></div>
 <script>
-const DAYS = ["Sábado","Domingo","Segunda","Terça","Quarta","Quinta","Sexta"];
-const CATEGORIES = ["Trabalho","Saúde","Família","Social","Aprendizado","Lazer","Pessoal"];
-const ANTHROPIC_KEY = "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";
+var DAYS=["Sábado","Domingo","Segunda","Terça","Quarta","Quinta","Sexta"];
+var CATS=["Trabalho","Saúde","Família","Social","Aprendizado","Lazer","Pessoal"];
+var KEY="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";
 
-const TODAY_IDX = (()=>{
-  const d = new Date().getDay();
-  const map={6:0,0:1,1:2,2:3,3:4,4:5,5:6};
-  return map[d];
-})();
+var todayIdx=(function(){var d=new Date().getDay();return {6:0,0:1,1:2,2:3,3:4,4:5,5:6}[d];})();
 
-function getSaturday(){
-  const now=new Date(), day=now.getDay();
-  const diff=day===6?0:-(day+1);
-  const sat=new Date(now);
-  sat.setDate(now.getDate()+diff);
-  sat.setHours(0,0,0,0);
-  return sat;
+function getSat(){
+  var n=new Date(),day=n.getDay(),s=new Date(n);
+  s.setDate(n.getDate()+(day===6?0:-(day+1)));
+  s.setHours(0,0,0,0);return s;
 }
-function getDayDate(idx){
-  const d=new Date(getSaturday());
-  d.setDate(d.getDate()+idx);
+function dayDate(i){
+  var d=new Date(getSat());d.setDate(d.getDate()+i);
   return d.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
 }
-function getDayShortDate(idx){
-  const d=new Date(getSaturday());
-  d.setDate(d.getDate()+idx);
+function dayShort(i){
+  var d=new Date(getSat());d.setDate(d.getDate()+i);
   return d.toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"});
 }
-function getWeekLabel(){
-  const sat=getSaturday(), fri=new Date(sat);
-  fri.setDate(sat.getDate()+6);
-  const fmt=d=>d.toLocaleDateString("pt-BR",{day:"2-digit",month:"long"});
-  return `${fmt(sat)} a ${fmt(fri)} de ${fri.getFullYear()}`;
+function weekLabel(){
+  var s=getSat(),f=new Date(s);f.setDate(s.getDate()+6);
+  var fmt=function(d){return d.toLocaleDateString("pt-BR",{day:"2-digit",month:"long"});};
+  return fmt(s)+" a "+fmt(f)+" de "+f.getFullYear();
 }
 
-let state={
-  screen:"home", selectedDay:TODAY_IDX,
-  entries:JSON.parse(localStorage.getItem("diario_entries")||"{}"),
-  form:{category:CATEGORIES[0],text:"",photo:null},
-  report:"", weeklyReport:"", loading:false, activeReport:null
-};
+var entries=JSON.parse(localStorage.getItem("dr_entries")||"{}");
+var screen="home",selDay=todayIdx,form={cat:CATS[0],text:"",photo:null},report="",weekly="",loading=false,activeDay=null;
 
-function save(){ localStorage.setItem("diario_entries",JSON.stringify(state.entries)); }
+function save(){localStorage.setItem("dr_entries",JSON.stringify(entries));}
 
-function toBase64(file){
-  return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=()=>res(r.result);
-    r.onerror=rej;
-    r.readAsDataURL(file);
-  });
-}
-
-function setState(patch){ Object.assign(state,patch); render(); }
-
-async function handlePhoto(file){
-  if(!file)return;
-  const b64=await toBase64(file);
-  setState({form:{...state.form,photo:b64}});
-}
-
-function addEntry(){
-  if(!state.form.text.trim())return;
-  const entry={category:state.form.category,text:state.form.text.trim(),photo:state.form.photo,id:Date.now()};
-  const updated={...state.entries,[state.selectedDay]:[...(state.entries[state.selectedDay]||[]),entry]};
-  state.entries=updated; save();
-  setState({form:{...state.form,text:"",photo:null}});
-}
-
-function removeEntry(dayIdx,id){
-  state.entries={...state.entries,[dayIdx]:(state.entries[dayIdx]||[]).filter(e=>e.id!==id)};
-  save(); render();
-}
-
-function exportPDF(title,contentHtml){
-  const win=window.open("","_blank");
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title}</title>
-  <style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}
-  h1{font-size:2em;text-align:center;letter-spacing:2px;border-bottom:3px double #333;padding-bottom:12px}
-  .meta{text-align:center;color:#666;font-style:italic;font-size:13px;margin-bottom:24px}
-  p{text-align:justify;margin-bottom:14px;font-size:15px}
-  h3{font-size:1.1em;font-weight:700;border-bottom:2px solid #333;padding-bottom:6px;margin-top:28px}
-  img{max-width:100%;border-radius:6px;margin:10px 0}
-  @media print{body{margin:20px}}</style></head><body>
-  <h1>${title}</h1><div class="meta">Semana de ${getWeekLabel()}</div>
-  ${contentHtml}
-  <script>window.onload=()=>window.print()<\/script></body></html>`);
-  win.document.close();
-}
-
-async function generateDailyReport(dayIdx){
-  const evts=state.entries[dayIdx]||[];
-  if(!evts.length)return;
-  setState({loading:true,report:"",activeReport:dayIdx,screen:"daily-report"});
-  const prompt=`Você é um jornalista criativo e caloroso. Com base nos eventos abaixo do dia ${getDayDate(dayIdx)}, escreva um breve relato diário no estilo de crônica de jornal pessoal em português. Use linguagem fluida, calorosa e narrativa. Máximo 3 parágrafos. Não use tópicos nem marcadores.\n\nEventos do dia:\n${evts.map(e=>`[${e.category}] ${e.text}`).join("\n")}\n\nResponda apenas com o texto da crônica, sem título nem introdução extra.`;
-  try{
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})
-    });
-    const data=await res.json();
-    setState({loading:false,report:data.content?.map(b=>b.text||"").join("")||"Erro ao gerar relato."});
-  }catch(e){ setState({loading:false,report:"Erro ao conectar com a IA."}); }
-}
-
-async function generateWeekly(){
-  const allEvents=DAYS.map((d,i)=>({day:d,date:getDayShortDate(i),events:state.entries[i]||[]})).filter(d=>d.events.length>0);
-  if(!allEvents.length)return;
-  setState({loading:true,weeklyReport:"",screen:"weekly"});
-  const eventsText=allEvents.map(d=>`### ${d.day} (${d.date})\n${d.events.map(e=>`[${e.category}] ${e.text}`).join("\n")}`).join("\n\n");
-  const prompt=`Você é um jornalista criativo. Com base nos eventos da semana abaixo, escreva um jornal semanal pessoal em português, no estilo de um jornal real, com as seguintes seções:\n\n1. MANCHETE DA SEMANA\n2. DESTAQUES\n3. SAÚDE & BEM-ESTAR (se houver)\n4. REFLEXÃO DA SEMANA\n\nUse linguagem jornalística e narrativa. Não use marcadores. Separe seções com títulos em MAIÚSCULAS.\n\nEventos:\n${eventsText}\n\nResponda apenas com o texto do jornal.`;
-  try{
-    const res=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",headers:{"Content-Type":"application/json","x-api-key":ANTHROPIC_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:prompt}]})
-    });
-    const data=await res.json();
-    setState({loading:false,weeklyReport:data.content?.map(b=>b.text||"").join("")||"Erro."});
-  }catch(e){ setState({loading:false,weeklyReport:"Erro ao conectar com a IA."}); }
+function toB64(file,cb){
+  var r=new FileReader();
+  r.onload=function(){cb(r.result);};
+  r.readAsDataURL(file);
 }
 
 function render(){
-  const app=document.getElementById("app");
-  const {screen,entries,selectedDay,form,report,weeklyReport,loading,activeReport}=state;
-  const totalEntries=Object.values(entries).flat().length;
-  const daysWithEntries=Object.keys(entries).filter(k=>entries[k]?.length>0).length;
+  var root=document.getElementById("root");
+  var total=Object.values(entries).reduce(function(a,b){return a+b.length;},0);
+  var days=Object.keys(entries).filter(function(k){return entries[k]&&entries[k].length>0;}).length;
 
-  if(screen==="daily-report"){
-    const photos=(entries[activeReport]||[]).filter(e=>e.photo).map(e=>e.photo);
-    const htmlContent=[...report.split("\n").filter(Boolean).map(p=>`<p>${p}</p>`),...photos.map(src=>`<img src="${src}"/>`)].join("");
-    app.innerHTML=`
-      <button class="back-btn" onclick="setState({screen:'day'})">← Voltar</button>
-      <div class="screen-title">📰 Crônica de ${DAYS[activeReport]}</div>
-      <div class="week-label">${getDayDate(activeReport)}</div>
-      ${loading?`<div class="loading">⏳ Gerando sua crônica...</div>`:`
-        <div class="report-box">${report.split("\n").filter(Boolean).map(p=>`<p class="report-para">${p}</p>`).join("")}
-        ${photos.length?`<div class="photo-grid">${photos.map(src=>`<img src="${src}"/>`).join("")}</div>`:""}</div>
-        <button class="btn-export" onclick="exportPDF('Crônica de ${DAYS[activeReport]}','${encodeURIComponent(htmlContent)}')">🖨️ Exportar como PDF</button>
-      `}`;
-    document.querySelector(".btn-export")?.addEventListener("click",()=>exportPDF(`Crônica de ${DAYS[activeReport]}`,htmlContent));
+  if(screen==="daily"){
+    var evs=entries[activeDay]||[];
+    var photos=evs.filter(function(e){return e.photo;}).map(function(e){return e.photo;});
+    root.innerHTML='<button class="back" onclick="goHome()">← Voltar</button>'+
+      '<div class="title">📰 Crônica de '+DAYS[activeDay]+'</div>'+
+      '<div class="sub">'+dayDate(activeDay)+'</div>'+
+      (loading?'<div class="loading">⏳ Gerando sua crônica...</div>':
+        '<div class="report">'+
+          report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("")+
+          (photos.length?'<div class="photos">'+photos.map(function(s){return '<img src="'+s+'"/>';}).join("")+'</div>':'')+
+        '</div>'+
+        '<button class="export" onclick="exportPDF(\'Crônica de '+DAYS[activeDay]+'\')">🖨️ Exportar como PDF</button>'
+      );
     return;
   }
 
   if(screen==="weekly"){
-    const allPhotos=DAYS.flatMap((_,i)=>(entries[i]||[]).filter(e=>e.photo).map(e=>e.photo));
-    const weeklyHtml=[...weeklyReport.split("\n").filter(Boolean).map(l=>/^[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ &]{4,}$/.test(l.trim())?`<h3>${l}</h3>`:`<p>${l}</p>`),
-      allPhotos.length?`<h3>GALERIA DA SEMANA</h3>${allPhotos.map(s=>`<img src="${s}"/>`).join("")}`:""
-    ].join("");
-    app.innerHTML=`
-      <button class="back-btn" onclick="setState({screen:'home'})">← Voltar</button>
-      <div class="masthead">A SEMANA SEGUNDO EU</div>
-      <div class="week-label">Semana de ${getWeekLabel()}</div>
-      <hr/>
-      ${loading?`<div class="loading">⏳ Gerando seu jornal semanal...</div>`:`
-        <div>${weeklyReport.split("\n").filter(Boolean).map(l=>/^[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ &]{4,}$/.test(l.trim())?`<h3 class="section-head">${l}</h3>`:`<p class="report-para">${l}</p>`).join("")}</div>
-        ${allPhotos.length?`<h3 class="section-head">GALERIA DA SEMANA</h3><div class="photo-grid">${allPhotos.map(s=>`<img src="${s}"/>`).join("")}</div>`:""}
-        <button class="btn-export" id="btn-weekly-export">🖨️ Exportar Jornal como PDF</button>
-      `}`;
-    document.getElementById("btn-weekly-export")?.addEventListener("click",()=>exportPDF("A Semana Segundo Eu",weeklyHtml));
+    root.innerHTML='<button class="back" onclick="goHome()">← Voltar</button>'+
+      '<div class="masthead">A SEMANA SEGUNDO EU</div>'+
+      '<div class="sub">Semana de '+weekLabel()+'</div>'+
+      '<hr/>'+
+      (loading?'<div class="loading">⏳ Gerando seu jornal semanal...</div>':
+        '<div>'+weekly.split("\n").filter(Boolean).map(function(l){
+          return /^[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ &]{4,}$/.test(l.trim())?'<h3 class="sec">'+l+'</h3>':'<p style="text-align:justify;line-height:1.8;margin-bottom:14px;font-size:15px">'+l+'</p>';
+        }).join("")+'</div>'+
+        getAllPhotos()+'<button class="export" onclick="exportWeekly()">🖨️ Exportar Jornal como PDF</button>'
+      );
     return;
   }
 
   if(screen==="day"){
-    const dayEntries=entries[selectedDay]||[];
-    app.innerHTML=`
-      <button class="back-btn" onclick="setState({screen:'home'})">← Voltar</button>
-      <div class="screen-title">📝 ${DAYS[selectedDay]}</div>
-      <div class="week-label">${getDayDate(selectedDay)}</div>
-      <select class="cat-select" id="cat-select">${CATEGORIES.map(c=>`<option${c===form.category?" selected":""}>${c}</option>`).join("")}</select>
-      <textarea class="entry-text" id="entry-text" placeholder="O que aconteceu hoje? Descreva livremente...">${form.text}</textarea>
-      <div class="photo-area" id="photo-area">
-        ${form.photo
-          ?`<div class="photo-preview"><img src="${form.photo}"/><button class="remove-photo" id="remove-photo">✕</button></div>`
-          :`<input type="file" accept="image/*" id="photo-input"/>
-            <div class="icon">📷</div>
-            <div class="hint">Toque aqui para adicionar foto</div>
-            <div class="hint2">Abre a galeria ou câmera</div>`
-        }
-      </div>
-      <button class="btn-primary" id="add-entry-btn"${!form.text.trim()?' disabled':''}>+ Adicionar evento</button>
-      ${dayEntries.length?`
-        <div class="entries-header">Eventos registrados</div>
-        ${dayEntries.map(e=>`
-          <div class="entry-item">
-            <span class="cat-badge">${e.category}</span>
-            <div class="entry-content">${e.text}${e.photo?`<img src="${e.photo}" class="entry-photo"/>`:""}
-            </div>
-            <button class="remove-btn" data-id="${e.id}">✕</button>
-          </div>`).join("")}
-        <button class="btn-green" id="gen-daily-btn">📰 Gerar crônica do dia</button>
-      `:""}`;
-
-    document.getElementById("cat-select")?.addEventListener("change",e=>{ state.form.category=e.target.value; });
-    document.getElementById("entry-text")?.addEventListener("input",e=>{ state.form.text=e.target.value; document.getElementById("add-entry-btn").disabled=!e.target.value.trim(); });
-    document.getElementById("photo-input")?.addEventListener("change",e=>handlePhoto(e.target.files?.[0]));
-    document.getElementById("remove-photo")?.addEventListener("click",()=>setState({form:{...state.form,photo:null}}));
-    document.getElementById("add-entry-btn")?.addEventListener("click",addEntry);
-    document.getElementById("gen-daily-btn")?.addEventListener("click",()=>generateDailyReport(selectedDay));
-    document.querySelectorAll(".remove-btn").forEach(btn=>btn.addEventListener("click",()=>removeEntry(selectedDay,+btn.dataset.id)));
+    var dayEvs=entries[selDay]||[];
+    root.innerHTML='<button class="back" onclick="goHome()">← Voltar</button>'+
+      '<div class="title">📝 '+DAYS[selDay]+'</div>'+
+      '<div class="sub">'+dayDate(selDay)+'</div>'+
+      '<select id="cat" onchange="form.cat=this.value">'+CATS.map(function(c){return '<option'+(c===form.cat?' selected':'')+'>'+c+'</option>';}).join('')+'</select>'+
+      '<textarea id="txt" placeholder="O que aconteceu hoje?">'+form.text+'</textarea>'+
+      '<div class="photo-box" id="pbox">'+
+        (form.photo?
+          '<img src="'+form.photo+'"/><button onclick="removePhoto()" style="position:absolute;top:4px;right:4px;background:#c00;color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px">✕</button>':
+          '<input type="file" accept="image/*" onchange="onPhoto(this)"/><p>📷 Toque para adicionar foto</p>'
+        )+
+      '</div>'+
+      '<button class="add" id="addbtn" onclick="addEntry()">+ Adicionar evento</button>'+
+      (dayEvs.length?
+        '<div class="ev-list"><h3>Eventos registrados</h3>'+
+        dayEvs.map(function(e){return '<div class="ev"><span class="badge">'+e.cat+'</span><div class="ev-text">'+e.text+(e.photo?'<img src="'+e.photo+'"/>':'')+'</div><button class="del" onclick="delEntry('+e.id+')">✕</button></div>';}).join('')+
+        '<button class="green" onclick="genDaily()">📰 Gerar crônica do dia</button></div>':''
+      );
+    document.getElementById("txt").addEventListener("input",function(){form.text=this.value;document.getElementById("addbtn").disabled=!this.value.trim();});
+    document.getElementById("addbtn").disabled=!form.text.trim();
     return;
   }
 
-  // HOME
-  app.innerHTML=`
-    <div class="masthead">📓 MEU DIÁRIO SEMANAL</div>
-    <div class="week-label">Semana de ${getWeekLabel()}</div>
-    <div class="stats">
-      <div class="stat"><strong>${totalEntries}</strong><small>eventos</small></div>
-      <div class="stat"><strong>${daysWithEntries}</strong><small>dias registrados</small></div>
-      <div class="stat"><strong>${7-daysWithEntries}</strong><small>dias restantes</small></div>
-    </div>
-    <div class="days-grid">
-      ${DAYS.map((d,i)=>{
-        const count=(entries[i]||[]).length;
-        const isToday=i===TODAY_IDX;
-        const bg=count>0?"#2c5f2e":isToday?"#1a3a5c":"#f0f0f0";
-        const color=count>0||isToday?"#fff":"#333";
-        const border=isToday?"2px solid #1a3a5c":"2px solid transparent";
-        return `<button class="day-btn" data-idx="${i}" style="background:${bg};color:${color};border:${border}">
-          <span class="day-name">${d}</span>
-          <span class="day-date">${getDayShortDate(i)}</span>
-          ${count>0?`<span class="day-count">${count} evento${count>1?"s":""}</span>`:isToday?`<span class="day-count" style="opacity:0.7">hoje</span>`:""}
-        </button>`;
-      }).join("")}
-    </div>
-    <hr/>
-    <button class="btn-red"${daysWithEntries===0?" disabled":""} id="gen-weekly-btn">🗞️ Gerar Jornal Semanal</button>
-    ${daysWithEntries===0?`<p class="empty-msg">Registre eventos em pelo menos um dia para gerar o jornal</p>`:""}`;
-
-  document.querySelectorAll(".day-btn").forEach(btn=>btn.addEventListener("click",()=>{ state.selectedDay=+btn.dataset.idx; setState({screen:"day"}); }));
-  document.getElementById("gen-weekly-btn")?.addEventListener("click",generateWeekly);
+  root.innerHTML='<h1>📓 MEU DIÁRIO SEMANAL</h1>'+
+    '<div class="sub">Semana de '+weekLabel()+'</div>'+
+    '<div class="stats">'+
+      '<div class="stat"><strong>'+total+'</strong><small>eventos</small></div>'+
+      '<div class="stat"><strong>'+days+'</strong><small>dias</small></div>'+
+      '<div class="stat"><strong>'+(7-days)+'</strong><small>restantes</small></div>'+
+    '</div>'+
+    '<div class="grid">'+
+    DAYS.map(function(d,i){
+      var cnt=(entries[i]||[]).length;
+      var today=i===todayIdx;
+      var bg=cnt>0?"#2c5f2e":today?"#1a3a5c":"#f0f0f0";
+      var cl=cnt>0||today?"#fff":"#333";
+      return '<button class="day" onclick="openDay('+i+')" style="background:'+bg+';color:'+cl+'">'+
+        '<b>'+d+'</b><span>'+dayShort(i)+'</span>'+
+        (cnt>0?'<span>'+cnt+' evento'+(cnt>1?'s':'')+'</span>':today?'<span>hoje</span>':'')+
+      '</button>';
+    }).join("")+
+    '</div><hr/>'+
+    '<button class="main" '+(days===0?'disabled':'')+' onclick="genWeekly()">🗞️ Gerar Jornal Semanal</button>'+
+    (days===0?'<p class="hint">Registre eventos para gerar o jornal</p>':"");
 }
 
-if("serviceWorker" in navigator) navigator.serviceWorker.register("/My-daily-diary/sw.js");
+function goHome(){screen="home";render();}
+function openDay(i){selDay=i;form={cat:CATS[0],text:"",photo:null};screen="day";render();}
+function removePhoto(){form.photo=null;render();}
+function onPhoto(el){var f=el.files[0];if(!f)return;toB64(f,function(b){form.photo=b;render();});}
+
+function addEntry(){
+  var txt=document.getElementById("txt").value.trim();
+  if(!txt)return;
+  var e={cat:form.cat,text:txt,photo:form.photo,id:Date.now()};
+  entries[selDay]=(entries[selDay]||[]).concat([e]);
+  save();form={cat:CATS[0],text:"",photo:null};render();
+}
+
+function delEntry(id){
+  entries[selDay]=(entries[selDay]||[]).filter(function(e){return e.id!==id;});
+  save();render();
+}
+
+function getAllPhotos(){
+  var all=DAYS.reduce(function(a,_,i){return a.concat((entries[i]||[]).filter(function(e){return e.photo;}).map(function(e){return e.photo;}));}, []);
+  return all.length?'<h3 class="sec">GALERIA DA SEMANA</h3><div class="photos">'+all.map(function(s){return '<img src="'+s+'"/>';}).join('')+'</div>':"";
+}
+
+function exportPDF(title){
+  var evs=entries[activeDay]||[];
+  var html=report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("")+
+    evs.filter(function(e){return e.photo;}).map(function(e){return '<img src="'+e.photo+'"/>';}).join("");
+  openPDF(title,html);
+}
+
+function exportWeekly(){
+  var html=weekly.split("\n").filter(Boolean).map(function(l){
+    return /^[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ &]{4,}$/.test(l.trim())?'<h3>'+l+'</h3>':'<p>'+l+'</p>';
+  }).join("")+getAllPhotos();
+  openPDF("A Semana Segundo Eu",html);
+}
+
+function openPDF(title,html){
+  var w=window.open("","_blank");
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;font-size:13px;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}img{max-width:100%;border-radius:6px;margin:10px 0}</style></head><body>'+
+    '<h1>'+title+'</h1><div class="meta">Semana de '+weekLabel()+'</div>'+html+
+    '<script>window.onload=function(){window.print();}<\/script></body></html>');
+  w.document.close();
+}
+
+function callAI(prompt,cb){
+  fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-api-key":KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:prompt}]})
+  }).then(function(r){return r.json();}).then(function(d){
+    cb(d.content&&d.content.length?d.content.map(function(b){return b.text||"";}).join(""):"Erro ao gerar.");
+  }).catch(function(){cb("Erro ao conectar com a IA.");});
+}
+
+function genDaily(){
+  var evs=entries[selDay]||[];
+  if(!evs.length)return;
+  activeDay=selDay;loading=true;report="";screen="daily";render();
+  var prompt="Você é um jornalista criativo. Com base nos eventos abaixo do dia "+dayDate(activeDay)+", escreva uma crônica pessoal em português. Use linguagem fluida e narrativa. Máximo 3 parágrafos. Não use marcadores.\n\nEventos:\n"+evs.map(function(e){return "["+e.cat+"] "+e.text;}).join("\n")+"\n\nResponda apenas com o texto.";
+  callAI(prompt,function(txt){report=txt;loading=false;render();});
+}
+
+function genWeekly(){
+  var all=DAYS.map(function(d,i){return {day:d,date:dayShort(i),evs:entries[i]||[]};}).filter(function(d){return d.evs.length>0;});
+  if(!all.length)return;
+  loading=true;weekly="";screen="weekly";render();
+  var txt=all.map(function(d){return "### "+d.day+" ("+d.date+")\n"+d.evs.map(function(e){return "["+e.cat+"] "+e.text;}).join("\n");}).join("\n\n");
+  var prompt="Você é um jornalista criativo. Escreva um jornal semanal pessoal em português com as seções:\n1. MANCHETE DA SEMANA\n2. DESTAQUES\n3. SAÚDE & BEM-ESTAR\n4. REFLEXÃO DA SEMANA\n\nUse prosa, sem marcadores. Títulos em MAIÚSCULAS.\n\nEventos:\n"+txt+"\n\nResponda apenas com o texto.";
+  callAI(prompt,function(txt){weekly=txt;loading=false;render();});
+}
+
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}
 render();
 </script>
 </body>
