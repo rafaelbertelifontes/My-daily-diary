@@ -1,12 +1,23 @@
-const CACHE = "diario-semanal-v1";
-const FILES = ["/", "/index.html", "/manifest.json"];
-
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
-});
-
-self.addEventListener("fetch", e => {
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
-  );
-});
+{
+  "name": "Meu Diário Semanal",
+  "short_name": "Diário Semanal",
+  "description": "Registre sua semana e gere seu jornal pessoal com IA",
+  "start_url": "/My-daily-diary/",
+  "scope": "/My-daily-diary/",
+  "display": "standalone",
+  "background_color": "#f5f5f0",
+  "theme_color": "#1a3a5c",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192/1a3a5c/ffffff?text=DS",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512/1a3a5c/ffffff?text=DS",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
