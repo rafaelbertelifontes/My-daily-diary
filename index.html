@@ -25,10 +25,10 @@
     p.hint{text-align:center;color:#999;font-size:13px;margin-top:8px}
     .back{background:none;border:none;color:#555;font-size:14px;cursor:pointer;margin-bottom:12px;font-family:Georgia,serif}
     .title{font-size:1.3em;font-weight:700;margin-bottom:2px}
-    select,textarea{width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;font-size:14px;font-family:Georgia,serif;margin-bottom:10px}
+    select,textarea,input{width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;font-size:14px;font-family:Georgia,serif;margin-bottom:10px}
     textarea{resize:vertical;min-height:80px}
     .photo-box{border:2px dashed #ccc;border-radius:8px;padding:16px;text-align:center;background:#fafafa;margin-bottom:12px;position:relative;min-height:80px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
-    .photo-box input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+    .photo-box input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;padding:0}
     .photo-box p{font-size:13px;color:#888;pointer-events:none}
     .photo-box img{width:80px;height:80px;object-fit:cover;border-radius:6px}
     button.add{background:#1a3a5c;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif;margin-bottom:8px}
@@ -50,6 +50,10 @@
     .loading{text-align:center;padding:40px;color:#666;font-size:16px}
     .masthead{font-size:1.8em;font-weight:700;text-align:center;letter-spacing:2px;margin-bottom:4px}
     .sec{font-size:1em;font-weight:700;margin-top:24px;margin-bottom:8px;border-bottom:2px solid #333;padding-bottom:4px;letter-spacing:1px}
+    .key-box{background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 20px rgba(0,0,0,0.1);margin-top:40px}
+    .key-box h2{font-size:1.2em;margin-bottom:8px}
+    .key-box p{font-size:13px;color:#666;margin-bottom:16px;line-height:1.6}
+    button.key-btn{background:#1a3a5c;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif}
   </style>
 </head>
 <body>
@@ -57,7 +61,6 @@
 <script>
 var DAYS=["Sábado","Domingo","Segunda","Terça","Quarta","Quinta","Sexta"];
 var CATS=["Trabalho","Saúde","Família","Social","Aprendizado","Lazer","Pessoal"];
-var KEY="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";
 
 var todayIdx=(function(){var d=new Date().getDay();return {6:0,0:1,1:2,2:3,3:4,4:5,5:6}[d];})();
 
@@ -84,6 +87,8 @@ var entries=JSON.parse(localStorage.getItem("dr_entries")||"{}");
 var screen="home",selDay=todayIdx,form={cat:CATS[0],text:"",photo:null},report="",weekly="",loading=false,activeDay=null;
 
 function save(){localStorage.setItem("dr_entries",JSON.stringify(entries));}
+function getKey(){return localStorage.getItem("dr_key")||"";}
+function saveKey(k){localStorage.setItem("dr_key",k);}
 
 function toB64(file,cb){
   var r=new FileReader();
@@ -93,6 +98,18 @@ function toB64(file,cb){
 
 function render(){
   var root=document.getElementById("root");
+
+  // Tela de configuração da chave
+  if(!getKey()){
+    root.innerHTML='<div class="key-box">'+
+      '<h2>🔑 Configurar API Key</h2>'+
+      '<p>Para gerar crônicas com IA, você precisa de uma chave da Anthropic. Acesse <strong>console.anthropic.com</strong>, crie uma chave e cole abaixo. Ela será salva apenas no seu celular.</p>'+
+      '<input type="password" id="key-input" placeholder="sk-ant-..."/>'+
+      '<button class="key-btn" onclick="salvarChave()">Salvar e continuar</button>'+
+    '</div>';
+    return;
+  }
+
   var total=Object.values(entries).reduce(function(a,b){return a+b.length;},0);
   var days=Object.keys(entries).filter(function(k){return entries[k]&&entries[k].length>0;}).length;
 
@@ -107,12 +124,13 @@ function render(){
           report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("")+
           (photos.length?'<div class="photos">'+photos.map(function(s){return '<img src="'+s+'"/>';}).join("")+'</div>':'')+
         '</div>'+
-        '<button class="export" onclick="exportPDF(\'Crônica de '+DAYS[activeDay]+'\')">🖨️ Exportar como PDF</button>'
+        '<button class="export" onclick="exportPDF()">🖨️ Exportar como PDF</button>'
       );
     return;
   }
 
   if(screen==="weekly"){
+    var allP=getAllPhotosHtml();
     root.innerHTML='<button class="back" onclick="goHome()">← Voltar</button>'+
       '<div class="masthead">A SEMANA SEGUNDO EU</div>'+
       '<div class="sub">Semana de '+weekLabel()+'</div>'+
@@ -120,8 +138,8 @@ function render(){
       (loading?'<div class="loading">⏳ Gerando seu jornal semanal...</div>':
         '<div>'+weekly.split("\n").filter(Boolean).map(function(l){
           return /^[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ &]{4,}$/.test(l.trim())?'<h3 class="sec">'+l+'</h3>':'<p style="text-align:justify;line-height:1.8;margin-bottom:14px;font-size:15px">'+l+'</p>';
-        }).join("")+'</div>'+
-        getAllPhotos()+'<button class="export" onclick="exportWeekly()">🖨️ Exportar Jornal como PDF</button>'
+        }).join("")+'</div>'+allP+
+        '<button class="export" onclick="exportWeekly()">🖨️ Exportar Jornal como PDF</button>'
       );
     return;
   }
@@ -170,9 +188,16 @@ function render(){
     }).join("")+
     '</div><hr/>'+
     '<button class="main" '+(days===0?'disabled':'')+' onclick="genWeekly()">🗞️ Gerar Jornal Semanal</button>'+
-    (days===0?'<p class="hint">Registre eventos para gerar o jornal</p>':"");
+    (days===0?'<p class="hint">Registre eventos para gerar o jornal</p>':'')+
+    '<p class="hint" style="margin-top:16px"><a href="#" onclick="resetKey()" style="color:#999;font-size:12px">Alterar API Key</a></p>';
 }
 
+function salvarChave(){
+  var k=document.getElementById("key-input").value.trim();
+  if(!k){alert("Cole sua chave API!");return;}
+  saveKey(k);render();
+}
+function resetKey(){localStorage.removeItem("dr_key");render();}
 function goHome(){screen="home";render();}
 function openDay(i){selDay=i;form={cat:CATS[0],text:"",photo:null};screen="day";render();}
 function removePhoto(){form.photo=null;render();}
@@ -191,22 +216,22 @@ function delEntry(id){
   save();render();
 }
 
-function getAllPhotos(){
+function getAllPhotosHtml(){
   var all=DAYS.reduce(function(a,_,i){return a.concat((entries[i]||[]).filter(function(e){return e.photo;}).map(function(e){return e.photo;}));}, []);
   return all.length?'<h3 class="sec">GALERIA DA SEMANA</h3><div class="photos">'+all.map(function(s){return '<img src="'+s+'"/>';}).join('')+'</div>':"";
 }
 
-function exportPDF(title){
+function exportPDF(){
   var evs=entries[activeDay]||[];
   var html=report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("")+
     evs.filter(function(e){return e.photo;}).map(function(e){return '<img src="'+e.photo+'"/>';}).join("");
-  openPDF(title,html);
+  openPDF('Crônica de '+DAYS[activeDay],html);
 }
 
 function exportWeekly(){
   var html=weekly.split("\n").filter(Boolean).map(function(l){
     return /^[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ &]{4,}$/.test(l.trim())?'<h3>'+l+'</h3>':'<p>'+l+'</p>';
-  }).join("")+getAllPhotos();
+  }).join("")+getAllPhotosHtml();
   openPDF("A Semana Segundo Eu",html);
 }
 
@@ -219,15 +244,16 @@ function openPDF(title,html){
 }
 
 function callAI(prompt,cb){
+  var k=getKey();
   fetch("https://api.anthropic.com/v1/messages",{
     method:"POST",
-    headers:{"Content-Type":"application/json","x-api-key":KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    headers:{"Content-Type":"application/json","x-api-key":k,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
     body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:prompt}]})
   }).then(function(r){return r.json();}).then(function(d){
-    if(d.error){cb("ERRO API: "+d.error.message);}
+    if(d.error){cb("Erro: "+d.error.message);}
     else if(d.content&&d.content.length){cb(d.content.map(function(b){return b.text||"";}).join(""));}
-    else{cb("ERRO: resposta vazia. Dados: "+JSON.stringify(d));}
-  }).catch(function(e){cb("ERRO CONEXÃO: "+e.message);});
+    else{cb("Erro: resposta inesperada.");}
+  }).catch(function(e){cb("Erro de conexão: "+e.message);});
 }
 
 function genDaily(){
