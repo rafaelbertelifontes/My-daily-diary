@@ -228,7 +228,7 @@ function callAI(prompt,cb){
     else if(d.content&&d.content.length){cb(d.content.map(function(b){return b.text||"";}).join(""));}
     else{cb("ERRO: resposta vazia. Dados: "+JSON.stringify(d));}
   }).catch(function(e){cb("ERRO CONEXÃO: "+e.message);});
-}}
+}
 
 function genDaily(){
   var evs=entries[selDay]||[];
