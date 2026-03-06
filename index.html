@@ -260,7 +260,7 @@ function genDaily(){
   var evs=entries[selDay]||[];
   if(!evs.length)return;
   activeDay=selDay;loading=true;report="";screen="daily";render();
-  var prompt="Você é um jornalista criativo. Com base nos eventos abaixo do dia "+dayDate(activeDay)+", escreva uma crônica pessoal em português. Use linguagem fluida e narrativa. Máximo 3 parágrafos. Não use marcadores.\n\nEventos:\n"+evs.map(function(e){return "["+e.cat+"] "+e.text;}).join("\n")+"\n\nResponda apenas com o texto.";
+  var prompt="Você vai escrever uma entrada de diário pessoal para o Rafael (Rafa), 41 anos, médico ginecologista especialista em Reprodução Humana, empresário, pai coruja do Dudu, Gui e Lelê, casado com a Dry. Ele é bem-humorado, descontraído, fala 'cara' naturalmente, é agnóstico, muito família e orgulhoso das suas conquistas profissionais.\n\nEscreva na PRIMEIRA PESSOA, como se fosse o próprio Rafa escrevendo. Use a voz e linguagem dele: descontraída, afetiva, com humor leve quando couber. Seja FIEL aos eventos — não invente situações, não dramatize, não fantasie. Capture também os SENTIMENTOS por trás dos eventos, para que ao reler daqui a anos ele reviva aquele dia de verdade. Máximo 3 parágrafos. Não use marcadores.\n\nEventos do dia "+dayDate(activeDay)+":\n"+evs.map(function(e){return "["+e.cat+"] "+e.text;}).join("\n")+"\n\nResponda apenas com o texto do diário, sem título.";
   callAI(prompt,function(txt){report=txt;loading=false;render();});
 }
 
