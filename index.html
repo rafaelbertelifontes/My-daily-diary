@@ -300,7 +300,7 @@ function exportWeekly(){
 
 function openPDF(title,html){
   var w=window.open("","_blank");
-  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;font-size:13px;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}img{max-width:100%;border-radius:6px;margin:10px 0;page-break-inside:avoid;break-inside:avoid}</style></head><body>'+
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;font-size:13px;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}img{max-width:100%;border-radius:6px;margin:10px 0;display:block;page-break-before:auto;page-break-after:auto;page-break-inside:avoid}</style></head><body>'+
     '<h1>'+title+'</h1><div class="meta">Semana de '+weekLabel()+'</div>'+html+
     '<script>window.onload=function(){window.print();}<\/script></body></html>');
   w.document.close();
@@ -331,7 +331,7 @@ function genDaily(){
     chronicles.slice(-3).map(function(c){return "--- "+c.date+" ---\n"+c.text;}).join("\n\n");
   }
 
-  var prompt="Você vai escrever uma entrada de diário pessoal para o Rafael (Rafa), 41 anos, médico ginecologista especialista em Reprodução Humana, empresário, pai coruja do Dudu (Eduardo), Gui (Guilherme) e Lelê (Alexandre), casado com a Dry (Andryana). Trabalha na Lavie, clínica de medicina reprodutiva fundada com seu pai Dr. Cezar. Também sócio da Bentcare e GS Embriologia. É bem-humorado, descontraído, fala 'cara' naturalmente, é agnóstico, muito família e orgulhoso das suas conquistas profissionais.\n\nEscreva na PRIMEIRA PESSOA, como se fosse o próprio Rafa escrevendo no seu diário. Use a voz e linguagem dele: descontraída, afetiva, com humor leve quando couber. Seja FIEL aos eventos — não invente situações, não dramatize. Capture também os SENTIMENTOS por trás dos eventos, para que ao reler daqui a anos ele reviva aquele dia de verdade. Máximo 3 parágrafos. Não use marcadores nem título."+context+"\n\nEventos do dia "+dayDate(activeDay)+":\n"+evs.map(function(e){return "["+e.cat+"] "+e.text;}).join("\n")+"\n\nResponda apenas com o texto do diário.";
+  var prompt="Escreva uma entrada curta de diário pessoal para o Rafa (41 anos, médico, pai do Dudu, Gui e Lelê, casado com a Dry). Na PRIMEIRA PESSOA, linguagem natural e descontraída, fiel ao que aconteceu, sem inventar nada. Máximo 2 parágrafos curtos. Varie o início — nunca comece com 'Cara'. Capture o sentimento do momento de forma simples e verdadeira.\n\nEventos do dia "+dayDate(activeDay)+":\n"+evs.map(function(e){return "["+e.cat+"] "+e.text;}).join("\n")+(context?"\n\nEntradas anteriores para referência de estilo:\n"+chronicles.slice(-2).map(function(c){return c.text;}).join("\n---\n"):"")+"\n\nResponda apenas com o texto, sem título.";
 
   callAI(prompt,function(txt){
     report=txt;
