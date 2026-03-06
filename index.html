@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Meu Diário Semanal</title>
+  <title>Diário do Rafa</title>
   <link rel="manifest" href="manifest.json"/>
   <meta name="theme-color" content="#1a3a5c"/>
   <style>
@@ -53,19 +53,46 @@
     button.export{background:#6b3a00;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif;margin-top:8px}
     button.edit-btn{background:#555;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif;margin-top:8px}
     .loading{text-align:center;padding:40px;color:#666;font-size:16px}
+    .loading-dots{display:inline-block;font-size:2em;letter-spacing:4px;animation:blink 1.2s infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+    .hist-item{background:#fff;border-radius:8px;padding:14px;margin-bottom:10px;border-left:3px solid #1a3a5c;cursor:pointer}
+    .hist-item .hist-date{font-size:11px;color:#999;margin-bottom:4px}
+    .hist-item .hist-preview{font-size:13px;color:#444;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .hist-full{font-size:14px;line-height:1.8;color:#333}
+    .tab-bar{display:flex;gap:6px;margin-bottom:16px}
+    .tab{flex:1;padding:8px;border:1px solid #ddd;border-radius:6px;background:#f5f5f0;font-family:Georgia,serif;font-size:13px;cursor:pointer;text-align:center}
+    .tab.active{background:#1a3a5c;color:#fff;border-color:#1a3a5c}
+    button.danger{background:#8b0000;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:Georgia,serif}
     .masthead{font-size:1.8em;font-weight:700;text-align:center;letter-spacing:2px;margin-bottom:4px}
     .sec{font-size:1em;font-weight:700;margin-top:24px;margin-bottom:8px;border-bottom:2px solid #333;padding-bottom:4px;letter-spacing:1px}
     .key-box{background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 20px rgba(0,0,0,0.1);margin-top:40px}
     .key-box h2{font-size:1.2em;margin-bottom:8px}
     .key-box p{font-size:13px;color:#666;margin-bottom:16px;line-height:1.6}
     button.key-btn{background:#1a3a5c;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif}
+    .mood-bar{display:flex;gap:6px;margin-bottom:14px;justify-content:center}
+    .mood-btn{flex:1;border:2px solid #ddd;border-radius:10px;padding:8px 4px;background:#fff;cursor:pointer;text-align:center;font-size:13px;transition:all 0.15s}
+    .mood-btn.sel{border-color:#1a3a5c;background:#e8f0f8;transform:scale(1.08)}
+    .mood-btn span{display:block;font-size:22px;line-height:1.2}
+    .mood-btn small{font-size:10px;color:#666}
+    .memory-box{background:linear-gradient(135deg,#1a3a5c,#2c5f2e);color:#fff;border-radius:12px;padding:18px;margin-bottom:16px;position:relative;overflow:hidden}
+    .memory-box::before{content:"💭";position:absolute;right:12px;top:10px;font-size:2.5em;opacity:0.2}
+    .memory-box .mem-label{font-size:10px;text-transform:uppercase;letter-spacing:2px;opacity:0.7;margin-bottom:6px}
+    .memory-box .mem-date{font-size:11px;opacity:0.8;margin-bottom:8px}
+    .memory-box .mem-text{font-size:14px;line-height:1.7;font-style:italic}
+    .letter-box{background:#fffbf0;border:2px solid #c8a000;border-radius:12px;padding:18px;margin-bottom:16px}
+    .letter-box .ltr-label{font-size:11px;color:#8b6800;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}
+    .letter-box .ltr-locked{text-align:center;padding:12px;color:#8b6800;font-size:14px}
+    .annual-box{background:linear-gradient(135deg,#3a1a5c,#5c1a1a);color:#fff;border-radius:12px;padding:20px;margin-bottom:16px}
+    .annual-box h2{font-size:1.2em;letter-spacing:2px;margin-bottom:4px}
+    button.purple{background:#3a1a5c;color:#fff;border:none;border-radius:6px;padding:14px;font-size:15px;width:100%;cursor:pointer;font-family:Georgia,serif;margin-top:6px}
+    button.gold{background:#8b6800;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif;margin-top:6px}
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script>
 var DAYS=["Sábado","Domingo","Segunda","Terça","Quarta","Quinta","Sexta"];
-var CATS=["Trabalho","Saúde","Família","Social","Aprendizado","Lazer"];
+var CATS=["Trabalho","Saúde","Família","Social","Aprendizado","Lazer","Pessoal"];
 
 var todayIdx=(function(){var d=new Date().getDay();return {6:0,0:1,1:2,2:3,3:4,4:5,5:6}[d];})();
 
@@ -88,206 +115,58 @@ function weekLabel(){
   return fmt(s)+" a "+fmt(f)+" de "+f.getFullYear();
 }
 
-var entries=JSON.parse(localStorage.getItem("dr_entries")||"{}");
-var chronicles=JSON.parse(localStorage.getItem("dr_chronicles")||"[]");
-var screen="home",selDay=todayIdx,form={cat:CATS[0],text:"",photo:null};
-var report="",weekly="",loading=false,activeDay=null,editing=false;
-var recognition=null,listening=false;
-
-function save(){localStorage.setItem("dr_entries",JSON.stringify(entries));}
-function saveChronicle(text){
-  chronicles.push({date:dayDate(activeDay),text:text});
-  if(chronicles.length>10)chronicles=chronicles.slice(-10);
-  localStorage.setItem("dr_chronicles",JSON.stringify(chronicles));
-}
-function getKey(){return localStorage.getItem("dr_key")||"";}
-function saveKey(k){localStorage.setItem("dr_key",k);}
-
-function toB64(file,cb){
-  var r=new FileReader();
-  r.onload=function(){cb(r.result);};
-  r.readAsDataURL(file);
-}
-
-// Microfone
-function initMic(){
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR)return null;
-  var r=new SR();
-  r.lang="pt-BR";
-  r.continuous=false;
-  r.interimResults=false;
-  r.onresult=function(e){
-    var txt=e.results[0][0].transcript;
-    var el=document.getElementById("txt");
-    if(el){el.value=(el.value?el.value+" ":"")+txt;form.text=el.value;}
-    listening=false;
-    var btn=document.getElementById("mic");
-    if(btn){btn.classList.remove("listening");btn.textContent="🎤";}
-  };
-  r.onerror=function(){
-    listening=false;
-    var btn=document.getElementById("mic");
-    if(btn){btn.classList.remove("listening");btn.textContent="🎤";}
-  };
-  r.onend=function(){
-    listening=false;
-    var btn=document.getElementById("mic");
-    if(btn){btn.classList.remove("listening");btn.textContent="🎤";}
-  };
-  return r;
-}
-
-function toggleMic(){
-  if(!recognition)recognition=initMic();
-  if(!recognition){alert("Seu navegador não suporta reconhecimento de voz.");return;}
-  if(listening){recognition.stop();listening=false;return;}
-  listening=true;
-  var btn=document.getElementById("mic");
-  if(btn){btn.classList.add("listening");btn.textContent="⏹";}
-  recognition.start();
-}
-
-function render(){
-  var root=document.getElementById("root");
-
-  if(!getKey()){
-    root.innerHTML='<div class="key-box">'+
-      '<h2>🔑 Configurar API Key</h2>'+
-      '<p>Para gerar crônicas com IA, cole sua chave da Anthropic abaixo. Ela é salva apenas no seu celular e nunca é compartilhada.</p>'+
-      '<input type="password" id="key-input" placeholder="sk-ant-..."/>'+
-      '<button class="key-btn" onclick="salvarChave()">Salvar e continuar</button>'+
-    '</div>';
-    return;
-  }
-
-  var total=Object.values(entries).reduce(function(a,b){return a+b.length;},0);
-  var days=Object.keys(entries).filter(function(k){return entries[k]&&entries[k].length>0;}).length;
-
-  if(screen==="daily"){
-    var evs=entries[activeDay]||[];
-    var photos=evs.filter(function(e){return e.photo;}).map(function(e){return e.photo;});
-    root.innerHTML='<button class="back" onclick="goHome()">← Voltar</button>'+
-      '<div class="title">📰 Crônica de '+DAYS[activeDay]+'</div>'+
-      '<div class="sub">'+dayDate(activeDay)+'</div>'+
-      (loading?'<div class="loading">⏳ Gerando sua crônica...</div>':
-        editing?
-          '<textarea id="edit-report" style="width:100%;min-height:200px;padding:16px;border-radius:8px;border:1px solid #ccc;font-size:15px;line-height:1.8;font-family:Georgia,serif">'+report+'</textarea>'+
-          '<button class="green" onclick="saveEdit()">✅ Salvar edição</button>':
-          '<div class="report">'+
-            report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("")+
-            (photos.length?'<div class="photos">'+photos.map(function(s){return '<img src="'+s+'"/>';}).join("")+'</div>':'')+
-          '</div>'+
-          '<button class="edit-btn" onclick="editing=true;render()">✏️ Editar crônica</button>'+
-          '<button class="export" onclick="exportPDF()">🖨️ Exportar como PDF</button>'
-      );
-    return;
-  }
-
-  if(screen==="weekly"){
-    var allP=getAllPhotosHtml();
-    root.innerHTML='<button class="back" onclick="goHome()">← Voltar</button>'+
-      '<div class="masthead">A SEMANA SEGUNDO EU</div>'+
-      '<div class="sub">Semana de '+weekLabel()+'</div>'+
-      '<hr/>'+
-      (loading?'<div class="loading">⏳ Gerando seu jornal semanal...</div>':
-        '<div>'+weekly.split("\n").filter(Boolean).map(function(l){
-          return /^[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ &]{4,}$/.test(l.trim())?'<h3 class="sec">'+l+'</h3>':'<p style="text-align:justify;line-height:1.8;margin-bottom:14px;font-size:15px">'+l+'</p>';
-        }).join("")+'</div>'+allP+
-        '<button class="export" onclick="exportWeekly()">🖨️ Exportar Jornal como PDF</button>'
-      );
-    return;
-  }
-
-  if(screen==="day"){
-    var dayEvs=entries[selDay]||[];
-    root.innerHTML='<button class="back" onclick="goHome()">← Voltar</button>'+
-      '<div class="title">📝 '+DAYS[selDay]+'</div>'+
-      '<div class="sub">'+dayDate(selDay)+'</div>'+
-      '<select id="cat" onchange="form.cat=this.value">'+CATS.map(function(c){return '<option'+(c===form.cat?' selected':'')+'>'+c+'</option>';}).join('')+'</select>'+
-      '<div class="txt-row">'+
-        '<textarea id="txt" placeholder="O que aconteceu hoje? Fale ou escreva...">'+form.text+'</textarea>'+
-        '<button class="mic-btn" id="mic" onclick="toggleMic()" title="Falar">🎤</button>'+
-      '</div>'+
-      '<div class="photo-box">'+
-        (form.photo?
-          '<img src="'+form.photo+'"/><button onclick="removePhoto()" style="position:absolute;top:4px;right:4px;background:#c00;color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px">✕</button>':
-          '<input type="file" accept="image/*" onchange="onPhoto(this)"/><p>📷 Toque para adicionar foto</p>'
-        )+
-      '</div>'+
-      '<button class="add" id="addbtn" onclick="addEntry()">+ Adicionar evento</button>'+
-      (dayEvs.length?
-        '<div class="ev-list"><h3>Eventos registrados</h3>'+
-        dayEvs.map(function(e){return '<div class="ev"><span class="badge">'+e.cat+'</span><div class="ev-text">'+e.text+(e.photo?'<img src="'+e.photo+'"/>':'')+'</div><button class="del" onclick="delEntry('+e.id+')">✕</button></div>';}).join('')+
-        '<button class="green" onclick="genDaily()">📰 Gerar crônica do dia</button></div>':''
-      );
-    document.getElementById("txt").addEventListener("input",function(){form.text=this.value;document.getElementById("addbtn").disabled=!this.value.trim();});
-    document.getElementById("addbtn").disabled=!form.text.trim();
-    return;
-  }
-
-  root.innerHTML='<h1>📓 MEU DIÁRIO SEMANAL</h1>'+
-    '<div class="sub">Semana de '+weekLabel()+'</div>'+
-    '<div class="stats">'+
-      '<div class="stat"><strong>'+total+'</strong><small>eventos</small></div>'+
-      '<div class="stat"><strong>'+days+'</strong><small>dias</small></div>'+
-      '<div class="stat"><strong>'+(7-days)+'</strong><small>restantes</small></div>'+
-    '</div>'+
-    '<div class="grid">'+
-    DAYS.map(function(d,i){
-      var cnt=(entries[i]||[]).length;
-      var today=i===todayIdx;
-      var bg=cnt>0?"#2c5f2e":today?"#1a3a5c":"#f0f0f0";
-      var cl=cnt>0||today?"#fff":"#333";
-      return '<button class="day" onclick="openDay('+i+')" style="background:'+bg+';color:'+cl+'">'+
-        '<b>'+d+'</b><span>'+dayShort(i)+'</span>'+
-        (cnt>0?'<span>'+cnt+' evento'+(cnt>1?'s':'')+'</span>':today?'<span>hoje</span>':'')+
-      '</button>';
-    }).join("")+
-    '</div><hr/>'+
-    '<button class="main" '+(days===0?'disabled':'')+' onclick="genWeekly()">🗞️ Gerar Jornal Semanal</button>'+
-    (days===0?'<p class="hint">Registre eventos para gerar o jornal</p>':'')+
-    '<p class="hint" style="margin-top:16px"><a href="#" onclick="resetKey()" style="color:#999;font-size:12px">Alterar API Key</a></p>';
-}
-
-function salvarChave(){
-  var k=document.getElementById("key-input").value.trim();
-  if(!k){alert("Cole sua chave API!");return;}
-  saveKey(k);render();
-}
-function resetKey(){localStorage.removeItem("dr_key");render();}
-function goHome(){screen="home";editing=false;render();}
-function openDay(i){selDay=i;form={cat:CATS[0],text:"",photo:null};screen="day";render();}
-function removePhoto(){form.photo=null;render();}
-function onPhoto(el){var f=el.files[0];if(!f)return;toB64(f,function(b){form.photo=b;render();});}
-function saveEdit(){
+< truncated lines 118-518 >
   var txt=document.getElementById("edit-report").value.trim();
-  if(txt){report=txt;saveChronicle(txt);}
+  if(txt){
+    report=txt;
+    // Atualiza a crônica mais recente do dia em vez de duplicar
+    var dateStr=dayDate(activeDay);
+    var idx=chronicles.map(function(c){return c.date;}).lastIndexOf(dateStr);
+    if(idx>=0){chronicles[idx].text=txt;localStorage.setItem("dr_chronicles",JSON.stringify(chronicles));}
+    else{saveChronicle(txt);}
+  }
   editing=false;render();
 }
 
 function addEntry(){
   var txt=document.getElementById("txt").value.trim();
   if(!txt)return;
-  var e={cat:form.cat,text:txt,photo:form.photo,id:Date.now()};
+  var e={cat:form.cat,text:txt,photos:form.photos.slice(),id:Date.now()};
   entries[selDay]=(entries[selDay]||[]).concat([e]);
-  save();form={cat:CATS[0],text:"",photo:null};render();
+  save();form={cat:CATS[0],text:"",photos:[]};render();
 }
 
 function delEntry(id){
+  if(!confirm("Tem certeza que quer apagar este evento? Esta ação não pode ser desfeita."))return;
   entries[selDay]=(entries[selDay]||[]).filter(function(e){return e.id!==id;});
   save();render();
 }
+function startEditEntry(id){
+  var ev=(entries[selDay]||[]).find(function(e){return e.id===id;});
+  if(!ev)return;
+  editingEntry={id:id,cat:ev.cat,text:ev.text,photos:ev.photos?ev.photos.slice():(ev.photo?[ev.photo]:[])};
+  render();
+}
+function saveEditEntry(){
+  var txt=document.getElementById("edit-ev-txt").value.trim();
+  if(!txt)return;
+  var cat=document.getElementById("edit-ev-cat").value;
+  entries[selDay]=(entries[selDay]||[]).map(function(e){
+    return e.id===editingEntry.id?{id:e.id,cat:cat,text:txt,photos:editingEntry.photos}:e;
+  });
+  save();editingEntry=null;render();
+}
+function cancelEditEntry(){editingEntry=null;render();}
 
 function getAllPhotosHtml(){
-  var all=DAYS.reduce(function(a,_,i){return a.concat((entries[i]||[]).filter(function(e){return e.photo;}).map(function(e){return e.photo;}));}, []);
+  var all=DAYS.reduce(function(a,_,i){return a.concat((entries[i]||[]).reduce(function(b,e){return b.concat(e.photos&&e.photos.length?e.photos:(e.photo?[e.photo]:[]));},[]));}, []);
   return all.length?'<h3 class="sec">GALERIA DA SEMANA</h3><div class="photos">'+all.map(function(s){return '<img src="'+s+'"/>';}).join('')+'</div>':"";
 }
 
 function exportPDF(){
   var evs=entries[activeDay]||[];
   var html=report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("")+
-    evs.filter(function(e){return e.photo;}).map(function(e){return '<img src="'+e.photo+'"/>';}).join("");
+    evs.reduce(function(a,e){return a.concat(e.photos&&e.photos.length?e.photos:(e.photo?[e.photo]:[]));}, []).map(function(p){return '<img src="'+p+'"/>';}).join("");
   openPDF('Crônica de '+DAYS[activeDay],html);
 }
 
@@ -300,9 +179,8 @@ function exportWeekly(){
 
 function openPDF(title,html){
   var w=window.open("","_blank");
-  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;font-size:13px;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}img{max-width:100%;max-height:400px;object-fit:contain;border-radius:6px;margin:10px auto;display:block;page-break-inside:avoid;break-inside:avoid}</style></head><body>'+
-    '<h1>'+title+'</h1><div class="meta">Semana de '+weekLabel()+'</div>'+html+
-    '<script>window.onload=function(){window.print();}<\/script></body></html>');
+  if(!w){alert("Permita pop-ups para exportar o PDF.");return;}
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;font-size:13px;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}img{max-width:100%;border-radius:6px;margin:10px 0;display:block;page-break-inside:avoid}</style></head><body><h1>'+title+'</h1><div class="meta">Semana de '+weekLabel()+'</div>'+html+'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body></html>');
   w.document.close();
 }
 
@@ -331,7 +209,7 @@ function genDaily(){
     chronicles.slice(-3).map(function(c){return "--- "+c.date+" ---\n"+c.text;}).join("\n\n");
   }
 
-  var prompt="Escreva uma entrada curta de diário pessoal para o Rafa (41 anos, médico, pai do Dudu, Gui e Lelê, casado com a Dry). Na PRIMEIRA PESSOA, linguagem natural e descontraída, fiel ao que aconteceu, sem inventar nada. Máximo 2 parágrafos curtos. Varie o início — nunca comece com 'Cara'. Capture o sentimento do momento de forma simples e verdadeira.\n\nEventos do dia "+dayDate(activeDay)+":\n"+evs.map(function(e){return "["+e.cat+"] "+e.text;}).join("\n")+(context?"\n\nEntradas anteriores para referência de estilo:\n"+chronicles.slice(-2).map(function(c){return c.text;}).join("\n---\n"):"")+"\n\nResponda apenas com o texto, sem título.";
+  var moodOfDay=moods[moodKey(activeDay)];var moodDesc=moodOfDay!==undefined?" O mood do dia foi "+MOODS[moodOfDay].e+" ("+MOODS[moodOfDay].l+").":"";var prompt="Escreva uma entrada curta de diário pessoal para o Rafa ("+(new Date().getFullYear()-1984)+" anos, médico, pai do Dudu, Gui e Lelê, casado com a Dry). Na PRIMEIRA PESSOA, linguagem natural e descontraída, fiel ao que aconteceu, sem inventar nada. Máximo 2 parágrafos curtos. Varie o início — nunca comece com 'Cara'. Capture o sentimento do momento de forma simples e verdadeira."+moodDesc+"\n\nEventos do dia "+dayDate(activeDay)+":\n"+evs.map(function(e){return "["+e.cat+"] "+e.text;}).join("\n")+(context?"\n\nEntradas anteriores para referência de estilo:\n"+chronicles.slice(-2).map(function(c){return c.text;}).join("\n---\n"):"")+"\n\nResponda apenas com o texto, sem título.";
 
   callAI(prompt,function(txt){
     report=txt;
@@ -346,8 +224,8 @@ function genWeekly(){
   if(!all.length)return;
   loading=true;weekly="";screen="weekly";render();
   var txt=all.map(function(d){return "### "+d.day+" ("+d.date+")\n"+d.evs.map(function(e){return "["+e.cat+"] "+e.text;}).join("\n");}).join("\n\n");
-  var prompt="Você é um assistente pessoal do Rafa (Rafael, 41 anos, médico ginecologista, pai do Dudu, Gui e Lelê, casado com a Dry). Escreva o jornal semanal pessoal dele em português com as seções:\n1. MANCHETE DA SEMANA\n2. DESTAQUES\n3. SAÚDE & BEM-ESTAR\n4. REFLEXÃO DA SEMANA\n\nUse prosa fiel aos fatos, linguagem descontraída e afetiva, na terceira pessoa. Títulos em MAIÚSCULAS. Sem marcadores.\n\nEventos da semana:\n"+txt+"\n\nResponda apenas com o texto.";
-  callAI(prompt,function(txt){weekly=txt;loading=false;render();});
+  var prompt="Você é o Rafa (Rafael, 41 anos, médico ginecologista, pai do Dudu, Gui e Lelê, casado com a Dry). Escreva o jornal semanal pessoal em português, na PRIMEIRA PESSOA, como se fosse o próprio Rafa escrevendo sobre a sua semana. Use as seções:\n1. MANCHETE DA SEMANA\n2. DESTAQUES\n3. SAÚDE & BEM-ESTAR\n4. REFLEXÃO DA SEMANA\n\nUse prosa fiel aos fatos, linguagem descontraída e afetiva, na primeira pessoa (eu, meu, minha, fiz, fui, senti). Títulos em MAIÚSCULAS. Sem marcadores.\n\nEventos da semana:\n"+txt+"\n\nResponda apenas com o texto.";
+  callAI(prompt,function(txt){weekly=txt;loading=false;saveWeekly(txt);render();});
 }
 
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js");}
