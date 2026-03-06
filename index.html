@@ -115,7 +115,407 @@ function weekLabel(){
   return fmt(s)+" a "+fmt(f)+" de "+f.getFullYear();
 }
 
-< truncated lines 118-518 >
+var entries=JSON.parse(localStorage.getItem("dr_entries")||"{}");
+var chronicles=JSON.parse(localStorage.getItem("dr_chronicles")||"[]");
+var weeklySaved=JSON.parse(localStorage.getItem("dr_weeklies")||"[]");
+var moods=JSON.parse(localStorage.getItem("dr_moods")||"{}");
+var letters=JSON.parse(localStorage.getItem("dr_letters")||"[]");
+var annualSaved=JSON.parse(localStorage.getItem("dr_annual")||"[]");
+var screen="home",selDay=todayIdx,form={cat:CATS[0],text:"",photos:[]};
+var report="",weekly="",annual="",loading=false,activeDay=null,editing=false,editingEntry=null;
+var recognition=null,listening=false;
+
+var MOODS=[
+  {e:"😔",l:"Difícil"},
+  {e:"😐",l:"Normal"},
+  {e:"🙂",l:"Bom"},
+  {e:"😄",l:"Ótimo"},
+  {e:"🤩",l:"Incrível"}
+];
+
+var BDAY_MONTH=8, BDAY_DAY=11; // 11/08
+
+function isBirthday(){
+  var n=new Date();
+  return n.getMonth()+1===BDAY_MONTH && n.getDate()===BDAY_DAY;
+}
+
+function save(){localStorage.setItem("dr_entries",JSON.stringify(entries));}
+function saveChronicle(text){
+  chronicles.push({date:dayDate(activeDay),text:text});
+  localStorage.setItem("dr_chronicles",JSON.stringify(chronicles));
+}
+function saveWeekly(text){
+  var label=weekLabel();
+  var idx=weeklySaved.findIndex(function(w){return w.week===label;});
+  if(idx>=0){weeklySaved[idx].text=text;}else{weeklySaved.push({week:label,text:text});}
+  localStorage.setItem("dr_weeklies",JSON.stringify(weeklySaved));
+}
+function moodKey(dayIdx){
+  var d=new Date(getSat());d.setDate(d.getDate()+dayIdx);
+  return d.toISOString().substring(0,10);
+}
+function saveMood(dayIdx,mood){
+  moods[moodKey(dayIdx)]=mood;
+  localStorage.setItem("dr_moods",JSON.stringify(moods));
+}
+function saveLetter(text){
+  var openDate=new Date();
+  openDate.setFullYear(openDate.getFullYear()+1);
+  letters.push({written:new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"}),openDate:openDate.toISOString(),text:text});
+  localStorage.setItem("dr_letters",JSON.stringify(letters));
+}
+function saveAnnual(text){
+  var year=new Date().getFullYear();
+  var idx=annualSaved.findIndex(function(a){return a.year===year;});
+  if(idx>=0){annualSaved[idx].text=text;}else{annualSaved.push({year:year,text:text});}
+  localStorage.setItem("dr_annual",JSON.stringify(annualSaved));
+}
+function getKey(){return localStorage.getItem("dr_key")||"";}
+function saveKey(k){localStorage.setItem("dr_key",k);}
+
+function toB64(file,cb){
+  var r=new FileReader();
+  r.onload=function(){cb(r.result);};
+  r.readAsDataURL(file);
+}
+
+// Microfone
+function initMic(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return null;
+  var r=new SR();
+  r.lang="pt-BR";
+  r.continuous=false;
+  r.interimResults=false;
+  r.onresult=function(e){
+    var txt=e.results[0][0].transcript;
+    var el=document.getElementById("txt");
+    if(el){el.value=(el.value?el.value+" ":"")+txt;form.text=el.value;}
+    listening=false;
+    var btn=document.getElementById("mic");
+    if(btn){btn.classList.remove("listening");btn.textContent="🎤";}
+  };
+  r.onerror=function(){
+    listening=false;
+    var btn=document.getElementById("mic");
+    if(btn){btn.classList.remove("listening");btn.textContent="🎤";}
+  };
+  r.onend=function(){
+    listening=false;
+    var btn=document.getElementById("mic");
+    if(btn){btn.classList.remove("listening");btn.textContent="🎤";}
+  };
+  return r;
+}
+
+function toggleMic(){
+  if(!recognition)recognition=initMic();
+  if(!recognition){alert("Seu navegador não suporta reconhecimento de voz.");return;}
+  if(listening){recognition.stop();listening=false;return;}
+  listening=true;
+  var btn=document.getElementById("mic");
+  if(btn){btn.classList.add("listening");btn.textContent="⏹";}
+  recognition.start();
+}
+
+function render(){
+  var root=document.getElementById("root");
+
+  if(!getKey()){
+    root.innerHTML='<div class="key-box">'+
+      '<h2>🔑 Configurar API Key</h2>'+
+      '<p>Para gerar crônicas com IA, cole sua chave da Anthropic abaixo. Ela é salva apenas no seu celular e nunca é compartilhada.</p>'+
+      '<input type="password" id="key-input" placeholder="sk-ant-..."/>'+
+      '<button class="key-btn" onclick="salvarChave()">Salvar e continuar</button>'+
+    '</div>';
+    return;
+  }
+
+  var total=Object.values(entries).reduce(function(a,b){return a+b.length;},0);
+  var days=Object.keys(entries).filter(function(k){return entries[k]&&entries[k].length>0;}).length;
+
+  if(screen==="daily"){
+    var evs=entries[activeDay]||[];
+    var photos=evs.reduce(function(a,e){return a.concat(e.photos&&e.photos.length?e.photos:(e.photo?[e.photo]:[]));},[]);
+    root.innerHTML='<button class="back" onclick="goHome()">← Voltar</button>'+
+      '<div class="title">📰 Crônica de '+DAYS[activeDay]+'</div>'+
+      '<div class="sub">'+dayDate(activeDay)+'</div>'+
+      (loading?'<div class="loading">✍️ Gerando sua crônica<span class="loading-dots">...</span></div>':
+        editing?
+          '<textarea id="edit-report" style="width:100%;min-height:200px;padding:16px;border-radius:8px;border:1px solid #ccc;font-size:15px;line-height:1.8;font-family:Georgia,serif">'+report+'</textarea>'+
+          '<button class="green" onclick="saveEdit()">✅ Salvar edição</button>':
+          '<div class="report">'+
+            report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("")+
+            (photos.length?'<div class="photos">'+photos.map(function(s){return '<img src="'+s+'"/>';}).join("")+'</div>':'')+
+          '</div>'+
+          '<button class="edit-btn" onclick="editing=true;render()">✏️ Editar crônica</button>'+
+          '<button class="export" onclick="exportPDF()">🖨️ Exportar como PDF</button>'
+      );
+    return;
+  }
+
+  if(screen==="weekly"){
+    var allP=getAllPhotosHtml();
+    root.innerHTML='<button class="back" onclick="goHome()">← Voltar</button>'+
+      '<div class="masthead">A SEMANA SEGUNDO EU</div>'+
+      '<div class="sub">Semana de '+weekLabel()+'</div>'+
+      '<hr/>'+
+      (loading?'<div class="loading">🗞️ Gerando seu jornal<span class="loading-dots">...</span></div>':
+        '<div>'+weekly.split("\n").filter(Boolean).map(function(l){
+          return /^[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ &]{4,}$/.test(l.trim())?'<h3 class="sec">'+l+'</h3>':'<p style="text-align:justify;line-height:1.8;margin-bottom:14px;font-size:15px">'+l+'</p>';
+        }).join("")+'</div>'+allP+
+        '<button class="export" onclick="exportWeekly()">🖨️ Exportar Jornal como PDF</button>'
+      );
+    return;
+  }
+
+  if(screen==="annual"){
+    root.innerHTML='<button class="back" onclick="screen=\'home\';render()">← Voltar</button>'+
+      '<div class="annual-box"><h2>🎂 ANUÁRIO '+new Date().getFullYear()+'</h2><div style="opacity:0.7;font-size:13px">O ano segundo Rafa</div></div>'+
+      (loading?'<div class="loading">📖 Escrevendo seu anuário<span class="loading-dots">...</span></div>':
+        annual?
+          '<div class="report">'+annual.split("\n").filter(Boolean).map(function(l){
+            return /^[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ &]{4,}$/.test(l.trim())?'<h3 class="sec">'+l+'</h3>':'<p style="text-align:justify;line-height:1.8;margin-bottom:14px;font-size:15px">'+l+'</p>';
+          }).join("")+'</div>'+
+          '<button class="export" onclick="exportAnnual()">🖨️ Exportar Anuário como PDF</button>':
+          '<div style="text-align:center;padding:20px;color:#666">'+
+            '<div style="font-size:3em;margin-bottom:12px">🎂</div>'+
+            '<p style="margin-bottom:16px;line-height:1.7">Feliz aniversário, Rafa! Hoje você completa mais um ano.<br>Que tal registrar tudo que viveu?</p>'+
+            '<button class="purple" onclick="genAnnual()">✨ Gerar meu Anuário '+new Date().getFullYear()+'</button>'+
+          '</div>'
+      );
+    return;
+  }
+
+  if(screen==="letter"){
+    var readyLetters=letters.filter(function(l){return new Date(l.openDate)<=new Date();});
+    var pendingLetters=letters.filter(function(l){return new Date(l.openDate)>new Date();});
+    root.innerHTML='<button class="back" onclick="screen=\'home\';render()">← Voltar</button>'+
+      '<div class="title">✉️ Cartas para o Futuro</div>'+
+      '<div class="sub" style="margin-bottom:16px">Escreva hoje. Leia daqui a um ano.</div>'+
+      '<button class="gold" onclick="screen=\'write_letter\';render()">✍️ Escrever nova carta</button>'+
+      (readyLetters.length?
+        '<div style="margin-top:20px"><h3 style="font-size:1em;margin-bottom:10px;color:#2c5f2e">📬 Prontas para abrir ('+readyLetters.length+')</h3>'+
+        readyLetters.map(function(l,i){
+          var idx=letters.indexOf(l);
+          var open=window._openLetter===idx;
+          return '<div class="letter-box" onclick="window._openLetter='+(open?'null':idx)+';render()" style="cursor:pointer">'+
+            '<div class="ltr-label">Escrita em '+l.written+'</div>'+
+            (open?'<div style="line-height:1.8;font-size:14px;white-space:pre-wrap">'+l.text+'</div>':
+              '<div class="ltr-locked">💌 Toque para abrir</div>')+
+          '</div>';
+        }).join('')+'</div>':'')+
+      (pendingLetters.length?
+        '<div style="margin-top:16px"><h3 style="font-size:1em;margin-bottom:10px;color:#888">🔒 Aguardando ('+pendingLetters.length+')</h3>'+
+        pendingLetters.map(function(l){
+          var openD=new Date(l.openDate).toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"});
+          return '<div class="letter-box" style="opacity:0.7">'+
+            '<div class="ltr-label">Escrita em '+l.written+'</div>'+
+            '<div class="ltr-locked">🔒 Abre em '+openD+'</div>'+
+          '</div>';
+        }).join('')+'</div>':'')+
+      (!readyLetters.length&&!pendingLetters.length?'<p class="hint" style="margin-top:20px">Nenhuma carta ainda. Escreva a primeira!</p>':'');
+    return;
+  }
+
+  if(screen==="write_letter"){
+    root.innerHTML='<button class="back" onclick="screen=\'letter\';render()">← Voltar</button>'+
+      '<div class="title">✍️ Escrever carta</div>'+
+      '<div class="sub" style="margin-bottom:16px">Você só poderá ler isso em '+new Date(new Date().setFullYear(new Date().getFullYear()+1)).toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"})+'</div>'+
+      '<textarea id="letter-txt" style="min-height:220px;font-size:15px;line-height:1.8" placeholder="Querido Rafa do futuro...\n\nHoje eu..."></textarea>'+
+      '<button class="gold" id="letter-save-btn" onclick="saveLetterAndBack()">📮 Selar e guardar carta</button>';
+    return;
+  }
+
+  if(screen==="history"){
+    var tab=window._histTab||"daily";
+    var items=tab==="daily"?chronicles.slice().reverse():weeklySaved.slice().reverse();
+    var expanded=window._histExpanded;
+    root.innerHTML='<button class="back" onclick="screen=\'home\';render()">← Voltar</button>'+
+      '<h1 style="font-size:1.3em;margin-bottom:12px">📚 Histórico</h1>'+
+      '<div class="tab-bar">'+
+        '<button class="tab'+(tab==="daily"?" active":"")+'" onclick="window._histTab=\'daily\';window._histExpanded=null;render()">Crônicas Diárias</button>'+
+        '<button class="tab'+(tab==="weekly"?" active":"")+'" onclick="window._histTab=\'weekly\';window._histExpanded=null;render()">Jornais Semanais</button>'+
+      '</div>'+
+      (items.length===0?'<p class="hint">Nenhum registro ainda.</p>':
+        items.map(function(item,i){
+          var isOpen=expanded===i;
+          var dateLabel=tab==="daily"?item.date:("Semana de "+item.week);
+          return '<div class="hist-item" onclick="window._histExpanded='+(isOpen?'null':i)+';render()">'+
+            '<div class="hist-date">'+dateLabel+'</div>'+
+            (isOpen?'<div class="hist-full">'+item.text.split("\n").filter(Boolean).map(function(p){return '<p style="margin-bottom:10px">'+p+'</p>';}).join("")+'</div>':
+              '<div class="hist-preview">'+item.text+'</div>')+
+          '</div>';
+        }).join("")
+      );
+    return;
+  }
+
+  if(screen==="day"){
+    var dayEvs=entries[selDay]||[];
+    root.innerHTML='<button class="back" onclick="goHome()">← Voltar</button>'+
+      '<div class="title">📝 '+DAYS[selDay]+'</div>'+
+      '<div class="sub">'+dayDate(selDay)+'</div>'+
+      '<div style="font-size:12px;color:#888;margin-bottom:6px;text-align:center">Como foi seu dia?</div>'+
+      '<div class="mood-bar">'+
+        MOODS.map(function(m,i){
+          var sel=(moods[moodKey(selDay)]===i)?' sel':'';
+          return '<button class="mood-btn'+sel+'" onclick="saveMood('+selDay+','+i+');render()"><span>'+m.e+'</span><small>'+m.l+'</small></button>';
+        }).join('')+
+      '</div>'+
+      '<select id="cat">'+CATS.map(function(c){return '<option'+(c===form.cat?' selected':'')+'>'+c+'</option>';}).join('')+'</select>'+
+      '<div class="txt-row">'+
+        '<textarea id="txt" placeholder="O que aconteceu hoje? Fale ou escreva...">'+form.text+'</textarea>'+
+        '<button class="mic-btn" id="mic" onclick="toggleMic()" title="Falar">🎤</button>'+
+      '</div>'+
+      '<div class="photo-box" style="flex-direction:column;align-items:flex-start;padding:10px">'+
+        (form.photos.length?
+          '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'+
+          form.photos.map(function(p,i){return '<div style="position:relative;display:inline-block">'+
+            '<img src="'+p+'" style="width:70px;height:70px;object-fit:cover;border-radius:6px"/>'+
+            '<button onclick="removePhoto('+i+')" style="position:absolute;top:-6px;right:-6px;background:#c00;color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;font-size:11px;line-height:1">✕</button>'+
+          '</div>';}).join('')+
+          '</div>':'')+ 
+        '<div style="position:relative;width:100%;min-height:36px;display:flex;align-items:center;justify-content:center">'+
+          '<input type="file" accept="image/*" multiple onchange="onPhoto(this)" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;padding:0"/>'+
+          '<p style="font-size:13px;color:#888;pointer-events:none">📷 '+(form.photos.length?'Adicionar mais fotos':'Toque para adicionar foto(s)')+'</p>'+
+        '</div>'+
+      '</div>'+
+      '<button class="add" id="addbtn" onclick="addEntry()">+ Adicionar evento</button>'+
+      (editingEntry?
+        '<div style="background:#fff;border-radius:8px;padding:16px;border:2px solid #1a3a5c;margin-top:8px">'+
+        '<div style="font-weight:700;margin-bottom:10px">✏️ Editar evento</div>'+
+        '<select id="edit-ev-cat">'+CATS.map(function(c){return '<option'+(c===editingEntry.cat?' selected':'')+'>'+c+'</option>';}).join('')+'</select>'+
+        '<textarea id="edit-ev-txt" style="min-height:80px">'+editingEntry.text+'</textarea>'+
+        '<div style="display:flex;gap:8px">'+
+          '<button class="add" onclick="saveEditEntry()" style="margin-bottom:0">✅ Salvar</button>'+
+          '<button class="add" onclick="cancelEditEntry()" style="background:#888;margin-bottom:0">Cancelar</button>'+
+        '</div></div>':
+        dayEvs.length?
+          '<div class="ev-list"><h3>Eventos registrados</h3>'+
+          dayEvs.map(function(e){return '<div class="ev"><span class="badge">'+e.cat+'</span><div class="ev-text">'+e.text+((e.photos&&e.photos.length)?'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">'+e.photos.map(function(p){return '<img src="'+p+'" style="width:60px;height:60px;object-fit:cover;border-radius:4px"/>';}).join('')+'</div>':(e.photo?'<img src="'+e.photo+'"/>':''))+'</div>'+
+            '<div style="display:flex;flex-direction:column;gap:4px">'+
+              '<button class="del" onclick="startEditEntry('+e.id+')" title="Editar" style="color:#1a3a5c">✏️</button>'+
+              '<button class="del" onclick="delEntry('+e.id+')" title="Apagar">✕</button>'+
+            '</div></div>';}).join('')+
+          '<button class="green" onclick="genDaily()">📰 Gerar crônica do dia</button></div>':''
+      );
+    var catEl=document.getElementById("cat");
+    var txtEl=document.getElementById("txt");
+    var addEl=document.getElementById("addbtn");
+    if(catEl){catEl.value=form.cat;catEl.addEventListener("change",function(){form.cat=this.value;});}
+    if(txtEl){txtEl.addEventListener("input",function(){form.text=this.value;if(addEl)addEl.disabled=!this.value.trim();});}
+    if(addEl){addEl.disabled=!form.text.trim();}
+    return;
+  }
+
+  root.innerHTML='<h1>📓 MEU DIÁRIO SEMANAL</h1>'+
+    '<div class="sub">Semana de '+weekLabel()+'</div>'+
+    '<div class="stats">'+
+      '<div class="stat"><strong>'+total+'</strong><small>eventos</small></div>'+
+      '<div class="stat"><strong>'+days+'</strong><small>dias</small></div>'+
+      '<div class="stat"><strong>'+(7-days)+'</strong><small>restantes</small></div>'+
+    '</div>'+
+    '<div class="grid">'+
+    DAYS.map(function(d,i){
+      var cnt=(entries[i]||[]).length;
+      var today=i===todayIdx;
+      var bg=cnt>0?"#2c5f2e":today?"#1a3a5c":"#f0f0f0";
+      var cl=cnt>0||today?"#fff":"#333";
+      var moodIdx=moods[moodKey(i)];
+      var moodEmoji=(moodIdx!==undefined)?MOODS[moodIdx].e:'';
+      return '<button class="day" onclick="openDay('+i+')" style="background:'+bg+';color:'+cl+'">'+
+        '<b>'+d+(moodEmoji?' '+moodEmoji:'')+'</b><span>'+dayShort(i)+'</span>'+
+        (cnt>0?'<span>'+cnt+' evento'+(cnt>1?'s':'')+'</span>':today?'<span>hoje</span>':'')+
+      '</button>';
+    }).join("")+
+    '</div><hr/>'+
+    '<button class="main" '+(days===0?'disabled':'')+' onclick="genWeekly()">🗞️ Gerar Jornal Semanal</button>'+
+    (days===0?'<p class="hint">Registre eventos para gerar o jornal</p>':'')+
+    '<button class="main" style="background:#1a3a5c;margin-top:8px" onclick="screen=\'history\';render()">📚 Ver Histórico de Crônicas</button>'+
+    (isBirthday()?'<button class="purple" onclick="screen=\'annual\';annual=\'\';render()">🎂 Gerar Anuário — Feliz Aniversário, Rafa!</button>':'')+
+    '<button class="gold" onclick="screen=\'letter\';render()">✉️ Carta para o Futuro</button>'+
+    getMemoryHtml()+
+    getLetterAlertHtml()+
+    '<p class="hint" style="margin-top:16px"><a href="#" onclick="resetKey()" style="color:#999;font-size:12px">Alterar API Key</a></p>';
+}
+
+function getMemoryHtml(){
+  var all=[];
+  chronicles.forEach(function(c){all.push({type:"daily",date:c.date,text:c.text});});
+  weeklySaved.forEach(function(w){all.push({type:"weekly",week:w.week,text:w.text});});
+  if(!all.length)return "";
+  var mem=all[Math.floor(Math.random()*all.length)];
+  var label=mem.type==="daily"?mem.date:("Semana de "+mem.week);
+  var preview=mem.text.substring(0,180)+(mem.text.length>180?"...":"");
+  return '<div class="memory-box" style="margin-top:16px">'+
+    '<div class="mem-label">💭 Memória aleatória</div>'+
+    '<div class="mem-date">'+label+'</div>'+
+    '<div class="mem-text">'+preview+'</div>'+
+    '<button onclick="render()" style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:12px;cursor:pointer;margin-top:8px;padding:0">↻ outra memória</button>'+
+  '</div>';
+}
+
+function getLetterAlertHtml(){
+  var ready=letters.filter(function(l){return new Date(l.openDate)<=new Date();});
+  if(!ready.length)return "";
+  return '<div style="background:#fffbf0;border:2px solid #c8a000;border-radius:8px;padding:12px;margin-top:10px;text-align:center;cursor:pointer" onclick="screen=\'letter\';render()">'+
+    '📬 <strong>Você tem '+ready.length+' carta'+(ready.length>1?'s':'')+' do passado esperando!</strong>'+
+    '<div style="font-size:12px;color:#8b6800;margin-top:4px">Toque para abrir</div>'+
+  '</div>';
+}
+
+function saveLetterAndBack(){
+  var txt=document.getElementById("letter-txt").value.trim();
+  if(!txt){alert("Escreva algo antes de selar!");return;}
+  saveLetter(txt);
+  screen="letter";render();
+}
+
+function genAnnual(){
+  var allChronicles=chronicles.slice(-20);
+  var allWeeklies=weeklySaved.slice(-8);
+  if(!allChronicles.length&&!allWeeklies.length){alert("Registre algumas semanas antes de gerar o anuário!");return;}
+  loading=true;annual="";render();
+  var ctx="";
+  if(allChronicles.length){ctx+="CR\u00d4NICAS DO ANO:\n"+allChronicles.map(function(c){return c.date+": "+c.text.substring(0,200);}).join("\n\n");}
+  if(allWeeklies.length){ctx+="\n\nJORNAIS SEMANAIS:\n"+allWeeklies.map(function(w){return "Semana de "+w.week+": "+w.text.substring(0,300);}).join("\n\n");}
+  var year=new Date().getFullYear();
+  var secoes="1. O ANO EM UMA FRASE\n2. OS MOMENTOS QUE FICAM\n3. O QUE A VIDA ME ENSINOU\n4. GRATID\u00c3O\n5. O QUE EU QUERO PARA O PR\u00d3XIMO ANO";
+  var prompt="Voc\u00ea \u00e9 o Rafa (Rafael, "+(year-1984)+" anos, m\u00e9dico ginecologista, pai do Dudu, Gui e Lel\u00ea, casado com a Dry). Hoje \u00e9 seu anivers\u00e1rio, "+BDAY_DAY+"/"+BDAY_MONTH+"/"+year+". Escreva o Anu\u00e1rio do ano "+year+" em PRIMEIRA PESSOA, como uma carta \u00edntima para si mesmo, refletindo sobre o ano que passou. Use as se\u00e7\u00f5es:\n\n"+secoes+"\n\nT\u00edtulos em MAI\u00dasCULAS. Linguagem calorosa, honesta, afetiva. M\u00e1ximo 600 palavras.\n\nBaseie-se nestes registros do ano:\n"+ctx+"\n\nResponda apenas com o texto.";
+  callAI(prompt,function(txt){annual=txt;loading=false;saveAnnual(txt);render();});
+}
+
+function exportAnnual(){
+  var year=new Date().getFullYear();
+  var html=annual.split("\n").filter(Boolean).map(function(l){
+    return /^[A-ZÁÉÍÓÚÀÂÊÔÃÕÇ &]{4,}$/.test(l.trim())?"<h3>"+l+"</h3>":"<p>"+l+"</p>";
+  }).join("");
+  var w=window.open("","_blank");
+  if(!w){alert("Permita pop-ups para exportar.");return;}
+  var meta="O ano segundo Rafa — "+new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"});
+  var css="body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;margin-top:24px}";
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Anuário '+year+'</title><style>'+css+'</style></head><body><h1>🎂 ANUÁRIO '+year+'</h1><div class="meta">'+meta+'</div>'+html+'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body></html>');
+  w.document.close();
+}
+
+function salvarChave(){
+  var k=document.getElementById("key-input").value.trim();
+  if(!k){alert("Cole sua chave API!");return;}
+  saveKey(k);render();
+}
+function resetKey(){localStorage.removeItem("dr_key");render();}
+function goHome(){screen="home";editing=false;render();}
+function openDay(i){selDay=i;form={cat:CATS[0],text:"",photos:[]};editingEntry=null;screen="day";render();}
+function removePhoto(idx){form.photos.splice(idx,1);render();}
+function onPhoto(el){
+  var files=Array.from(el.files);
+  files.forEach(function(f){
+    toB64(f,function(b){form.photos.push(b);render();});
+  });
+}
+function saveEdit(){
   var txt=document.getElementById("edit-report").value.trim();
   if(txt){
     report=txt;
