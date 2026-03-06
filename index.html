@@ -495,7 +495,7 @@ function exportAnnual(){
   var w=window.open("","_blank");
   if(!w){alert("Permita pop-ups para exportar.");return;}
   var meta="O ano segundo Rafa — "+new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"long",year:"numeric"});
-  var css="body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;margin-top:24px}";
+  var css="body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;margin-top:24px}img{max-width:100%;border-radius:6px;margin:10px 0;display:block;page-break-inside:avoid;break-inside:avoid}";
   w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Anuário '+year+'</title><style>'+css+'</style></head><body><h1>🎂 ANUÁRIO '+year+'</h1><div class="meta">'+meta+'</div>'+html+'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body></html>');
   w.document.close();
 }
@@ -580,7 +580,7 @@ function exportWeekly(){
 function openPDF(title,html){
   var w=window.open("","_blank");
   if(!w){alert("Permita pop-ups para exportar o PDF.");return;}
-  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;font-size:13px;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}img{max-width:100%;border-radius:6px;margin:10px 0;display:block;page-break-inside:avoid}</style></head><body><h1>'+title+'</h1><div class="meta">Semana de '+weekLabel()+'</div>'+html+'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body></html>');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;font-size:13px;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}img{max-width:100%;border-radius:6px;margin:10px 0;display:block;page-break-inside:avoid;break-inside:avoid}.photos{display:flex;flex-wrap:wrap;gap:6px;page-break-inside:avoid;break-inside:avoid}.photos img{width:calc(50% - 3px);max-height:300px;object-fit:cover}</style></head><body><h1>'+title+'</h1><div class="meta">Semana de '+weekLabel()+'</div>'+html+'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body></html>');
   w.document.close();
 }
 
