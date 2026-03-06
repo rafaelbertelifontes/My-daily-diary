@@ -65,7 +65,7 @@
 <div id="root"></div>
 <script>
 var DAYS=["Sábado","Domingo","Segunda","Terça","Quarta","Quinta","Sexta"];
-var CATS=["Trabalho","Saúde","Família","Social","Aprendizado","Lazer","Pessoal"];
+var CATS=["Trabalho","Saúde","Família","Social","Aprendizado","Lazer"];
 
 var todayIdx=(function(){var d=new Date().getDay();return {6:0,0:1,1:2,2:3,3:4,4:5,5:6}[d];})();
 
@@ -300,7 +300,7 @@ function exportWeekly(){
 
 function openPDF(title,html){
   var w=window.open("","_blank");
-  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;font-size:13px;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}img{max-width:100%;border-radius:6px;margin:10px 0;display:block;page-break-before:auto;page-break-after:auto;page-break-inside:avoid}</style></head><body>'+
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;font-size:13px;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}img{max-width:100%;max-height:400px;object-fit:contain;border-radius:6px;margin:10px auto;display:block;page-break-inside:avoid;break-inside:avoid}</style></head><body>'+
     '<h1>'+title+'</h1><div class="meta">Semana de '+weekLabel()+'</div>'+html+
     '<script>window.onload=function(){window.print();}<\/script></body></html>');
   w.document.close();
