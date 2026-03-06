@@ -27,6 +27,11 @@
     .title{font-size:1.3em;font-weight:700;margin-bottom:2px}
     select,textarea,input{width:100%;padding:10px;border-radius:6px;border:1px solid #ddd;font-size:14px;font-family:Georgia,serif;margin-bottom:10px}
     textarea{resize:vertical;min-height:80px}
+    .txt-row{position:relative;margin-bottom:10px}
+    .txt-row textarea{margin-bottom:0;padding-right:48px}
+    .mic-btn{position:absolute;right:8px;bottom:8px;background:none;border:none;font-size:22px;cursor:pointer;padding:4px;border-radius:50%;transition:background 0.2s}
+    .mic-btn.listening{background:#ffeeee;animation:pulse 1s infinite}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
     .photo-box{border:2px dashed #ccc;border-radius:8px;padding:16px;text-align:center;background:#fafafa;margin-bottom:12px;position:relative;min-height:80px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
     .photo-box input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;padding:0}
     .photo-box p{font-size:13px;color:#888;pointer-events:none}
@@ -43,10 +48,10 @@
     button.green{background:#2c5f2e;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif;margin-top:12px}
     .report{background:#fafaf8;border-radius:8px;padding:20px;border-left:4px solid #2c5f2e;margin-top:12px}
     .report p{text-align:justify;line-height:1.8;margin-bottom:14px;font-size:15px}
-    .report h3{font-size:1em;font-weight:700;margin-top:24px;margin-bottom:8px;border-bottom:2px solid #333;padding-bottom:4px}
     .photos{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
     .photos img{width:calc(50% - 3px);border-radius:6px;object-fit:cover;max-height:180px}
-    button.export{background:#6b3a00;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif;margin-top:16px}
+    button.export{background:#6b3a00;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif;margin-top:8px}
+    button.edit-btn{background:#555;color:#fff;border:none;border-radius:6px;padding:12px;font-size:14px;width:100%;cursor:pointer;font-family:Georgia,serif;margin-top:8px}
     .loading{text-align:center;padding:40px;color:#666;font-size:16px}
     .masthead{font-size:1.8em;font-weight:700;text-align:center;letter-spacing:2px;margin-bottom:4px}
     .sec{font-size:1em;font-weight:700;margin-top:24px;margin-bottom:8px;border-bottom:2px solid #333;padding-bottom:4px;letter-spacing:1px}
@@ -84,9 +89,17 @@ function weekLabel(){
 }
 
 var entries=JSON.parse(localStorage.getItem("dr_entries")||"{}");
-var screen="home",selDay=todayIdx,form={cat:CATS[0],text:"",photo:null},report="",weekly="",loading=false,activeDay=null;
+var chronicles=JSON.parse(localStorage.getItem("dr_chronicles")||"[]");
+var screen="home",selDay=todayIdx,form={cat:CATS[0],text:"",photo:null};
+var report="",weekly="",loading=false,activeDay=null,editing=false;
+var recognition=null,listening=false;
 
 function save(){localStorage.setItem("dr_entries",JSON.stringify(entries));}
+function saveChronicle(text){
+  chronicles.push({date:dayDate(activeDay),text:text});
+  if(chronicles.length>10)chronicles=chronicles.slice(-10);
+  localStorage.setItem("dr_chronicles",JSON.stringify(chronicles));
+}
 function getKey(){return localStorage.getItem("dr_key")||"";}
 function saveKey(k){localStorage.setItem("dr_key",k);}
 
@@ -96,14 +109,52 @@ function toB64(file,cb){
   r.readAsDataURL(file);
 }
 
+// Microfone
+function initMic(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return null;
+  var r=new SR();
+  r.lang="pt-BR";
+  r.continuous=false;
+  r.interimResults=false;
+  r.onresult=function(e){
+    var txt=e.results[0][0].transcript;
+    var el=document.getElementById("txt");
+    if(el){el.value=(el.value?el.value+" ":"")+txt;form.text=el.value;}
+    listening=false;
+    var btn=document.getElementById("mic");
+    if(btn){btn.classList.remove("listening");btn.textContent="🎤";}
+  };
+  r.onerror=function(){
+    listening=false;
+    var btn=document.getElementById("mic");
+    if(btn){btn.classList.remove("listening");btn.textContent="🎤";}
+  };
+  r.onend=function(){
+    listening=false;
+    var btn=document.getElementById("mic");
+    if(btn){btn.classList.remove("listening");btn.textContent="🎤";}
+  };
+  return r;
+}
+
+function toggleMic(){
+  if(!recognition)recognition=initMic();
+  if(!recognition){alert("Seu navegador não suporta reconhecimento de voz.");return;}
+  if(listening){recognition.stop();listening=false;return;}
+  listening=true;
+  var btn=document.getElementById("mic");
+  if(btn){btn.classList.add("listening");btn.textContent="⏹";}
+  recognition.start();
+}
+
 function render(){
   var root=document.getElementById("root");
 
-  // Tela de configuração da chave
   if(!getKey()){
     root.innerHTML='<div class="key-box">'+
       '<h2>🔑 Configurar API Key</h2>'+
-      '<p>Para gerar crônicas com IA, você precisa de uma chave da Anthropic. Acesse <strong>console.anthropic.com</strong>, crie uma chave e cole abaixo. Ela será salva apenas no seu celular.</p>'+
+      '<p>Para gerar crônicas com IA, cole sua chave da Anthropic abaixo. Ela é salva apenas no seu celular e nunca é compartilhada.</p>'+
       '<input type="password" id="key-input" placeholder="sk-ant-..."/>'+
       '<button class="key-btn" onclick="salvarChave()">Salvar e continuar</button>'+
     '</div>';
@@ -120,11 +171,15 @@ function render(){
       '<div class="title">📰 Crônica de '+DAYS[activeDay]+'</div>'+
       '<div class="sub">'+dayDate(activeDay)+'</div>'+
       (loading?'<div class="loading">⏳ Gerando sua crônica...</div>':
-        '<div class="report">'+
-          report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("")+
-          (photos.length?'<div class="photos">'+photos.map(function(s){return '<img src="'+s+'"/>';}).join("")+'</div>':'')+
-        '</div>'+
-        '<button class="export" onclick="exportPDF()">🖨️ Exportar como PDF</button>'
+        editing?
+          '<textarea id="edit-report" style="width:100%;min-height:200px;padding:16px;border-radius:8px;border:1px solid #ccc;font-size:15px;line-height:1.8;font-family:Georgia,serif">'+report+'</textarea>'+
+          '<button class="green" onclick="saveEdit()">✅ Salvar edição</button>':
+          '<div class="report">'+
+            report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("")+
+            (photos.length?'<div class="photos">'+photos.map(function(s){return '<img src="'+s+'"/>';}).join("")+'</div>':'')+
+          '</div>'+
+          '<button class="edit-btn" onclick="editing=true;render()">✏️ Editar crônica</button>'+
+          '<button class="export" onclick="exportPDF()">🖨️ Exportar como PDF</button>'
       );
     return;
   }
@@ -150,8 +205,11 @@ function render(){
       '<div class="title">📝 '+DAYS[selDay]+'</div>'+
       '<div class="sub">'+dayDate(selDay)+'</div>'+
       '<select id="cat" onchange="form.cat=this.value">'+CATS.map(function(c){return '<option'+(c===form.cat?' selected':'')+'>'+c+'</option>';}).join('')+'</select>'+
-      '<textarea id="txt" placeholder="O que aconteceu hoje?">'+form.text+'</textarea>'+
-      '<div class="photo-box" id="pbox">'+
+      '<div class="txt-row">'+
+        '<textarea id="txt" placeholder="O que aconteceu hoje? Fale ou escreva...">'+form.text+'</textarea>'+
+        '<button class="mic-btn" id="mic" onclick="toggleMic()" title="Falar">🎤</button>'+
+      '</div>'+
+      '<div class="photo-box">'+
         (form.photo?
           '<img src="'+form.photo+'"/><button onclick="removePhoto()" style="position:absolute;top:4px;right:4px;background:#c00;color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px">✕</button>':
           '<input type="file" accept="image/*" onchange="onPhoto(this)"/><p>📷 Toque para adicionar foto</p>'
@@ -198,10 +256,15 @@ function salvarChave(){
   saveKey(k);render();
 }
 function resetKey(){localStorage.removeItem("dr_key");render();}
-function goHome(){screen="home";render();}
+function goHome(){screen="home";editing=false;render();}
 function openDay(i){selDay=i;form={cat:CATS[0],text:"",photo:null};screen="day";render();}
 function removePhoto(){form.photo=null;render();}
 function onPhoto(el){var f=el.files[0];if(!f)return;toB64(f,function(b){form.photo=b;render();});}
+function saveEdit(){
+  var txt=document.getElementById("edit-report").value.trim();
+  if(txt){report=txt;saveChronicle(txt);}
+  editing=false;render();
+}
 
 function addEntry(){
   var txt=document.getElementById("txt").value.trim();
@@ -259,9 +322,23 @@ function callAI(prompt,cb){
 function genDaily(){
   var evs=entries[selDay]||[];
   if(!evs.length)return;
-  activeDay=selDay;loading=true;report="";screen="daily";render();
-  var prompt="Você vai escrever uma entrada de diário pessoal para o Rafael (Rafa), 41 anos, médico ginecologista especialista em Reprodução Humana, empresário, pai coruja do Dudu, Gui e Lelê, casado com a Dry. Ele é bem-humorado, descontraído, fala 'cara' naturalmente, é agnóstico, muito família e orgulhoso das suas conquistas profissionais.\n\nEscreva na PRIMEIRA PESSOA, como se fosse o próprio Rafa escrevendo. Use a voz e linguagem dele: descontraída, afetiva, com humor leve quando couber. Seja FIEL aos eventos — não invente situações, não dramatize, não fantasie. Capture também os SENTIMENTOS por trás dos eventos, para que ao reler daqui a anos ele reviva aquele dia de verdade. Máximo 3 parágrafos. Não use marcadores.\n\nEventos do dia "+dayDate(activeDay)+":\n"+evs.map(function(e){return "["+e.cat+"] "+e.text;}).join("\n")+"\n\nResponda apenas com o texto do diário, sem título.";
-  callAI(prompt,function(txt){report=txt;loading=false;render();});
+  activeDay=selDay;loading=true;report="";editing=false;screen="daily";render();
+
+  // Contexto das crônicas anteriores para a IA aprender o estilo
+  var context="";
+  if(chronicles.length>0){
+    context="\n\nPara referência, aqui estão algumas entradas anteriores do diário do Rafa (use para aprender o estilo e as referências pessoais dele, mas NÃO repita o conteúdo):\n"+
+    chronicles.slice(-3).map(function(c){return "--- "+c.date+" ---\n"+c.text;}).join("\n\n");
+  }
+
+  var prompt="Você vai escrever uma entrada de diário pessoal para o Rafael (Rafa), 41 anos, médico ginecologista especialista em Reprodução Humana, empresário, pai coruja do Dudu (Eduardo), Gui (Guilherme) e Lelê (Alexandre), casado com a Dry (Andryana). Trabalha na Lavie, clínica de medicina reprodutiva fundada com seu pai Dr. Cezar. Também sócio da Bentcare e GS Embriologia. É bem-humorado, descontraído, fala 'cara' naturalmente, é agnóstico, muito família e orgulhoso das suas conquistas profissionais.\n\nEscreva na PRIMEIRA PESSOA, como se fosse o próprio Rafa escrevendo no seu diário. Use a voz e linguagem dele: descontraída, afetiva, com humor leve quando couber. Seja FIEL aos eventos — não invente situações, não dramatize. Capture também os SENTIMENTOS por trás dos eventos, para que ao reler daqui a anos ele reviva aquele dia de verdade. Máximo 3 parágrafos. Não use marcadores nem título."+context+"\n\nEventos do dia "+dayDate(activeDay)+":\n"+evs.map(function(e){return "["+e.cat+"] "+e.text;}).join("\n")+"\n\nResponda apenas com o texto do diário.";
+
+  callAI(prompt,function(txt){
+    report=txt;
+    loading=false;
+    saveChronicle(txt);
+    render();
+  });
 }
 
 function genWeekly(){
@@ -269,7 +346,7 @@ function genWeekly(){
   if(!all.length)return;
   loading=true;weekly="";screen="weekly";render();
   var txt=all.map(function(d){return "### "+d.day+" ("+d.date+")\n"+d.evs.map(function(e){return "["+e.cat+"] "+e.text;}).join("\n");}).join("\n\n");
-  var prompt="Você é um jornalista criativo. Escreva um jornal semanal pessoal em português com as seções:\n1. MANCHETE DA SEMANA\n2. DESTAQUES\n3. SAÚDE & BEM-ESTAR\n4. REFLEXÃO DA SEMANA\n\nUse prosa, sem marcadores. Títulos em MAIÚSCULAS.\n\nEventos:\n"+txt+"\n\nResponda apenas com o texto.";
+  var prompt="Você é um assistente pessoal do Rafa (Rafael, 41 anos, médico ginecologista, pai do Dudu, Gui e Lelê, casado com a Dry). Escreva o jornal semanal pessoal dele em português com as seções:\n1. MANCHETE DA SEMANA\n2. DESTAQUES\n3. SAÚDE & BEM-ESTAR\n4. REFLEXÃO DA SEMANA\n\nUse prosa fiel aos fatos, linguagem descontraída e afetiva, na terceira pessoa. Títulos em MAIÚSCULAS. Sem marcadores.\n\nEventos da semana:\n"+txt+"\n\nResponda apenas com o texto.";
   callAI(prompt,function(txt){weekly=txt;loading=false;render();});
 }
 
