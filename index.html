@@ -569,7 +569,7 @@ function exportPDF(){
   var textHtml=report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("");
   var photosHtml="";
   if(allPhotos.length===1){
-    photosHtml='<div style="margin-top:24px"><img src="'+allPhotos[0]+'" style="width:100%;height:420px;object-fit:cover;object-position:center top;border-radius:8px;display:block"/></div>';
+    photosHtml='<div style="margin-top:24px"><img src="'+allPhotos[0]+'" style="width:100%;height:420px;object-fit:cover;object-position:center center;border-radius:8px;display:block"/></div>';
   } else if(allPhotos.length>1){
     photosHtml='<div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:12px">'+allPhotos.map(function(p){return '<img src="'+p+'" style="width:100%;height:260px;object-fit:cover;object-position:center top;border-radius:8px;display:block"/>';}).join('')+'</div>';
   }
