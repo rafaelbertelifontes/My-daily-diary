@@ -565,9 +565,10 @@ function getAllPhotosHtml(){
 
 function exportPDF(){
   var evs=entries[activeDay]||[];
-  var html=report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("")+
-    evs.reduce(function(a,e){return a.concat(e.photos&&e.photos.length?e.photos:(e.photo?[e.photo]:[]));}, []).map(function(p){return '<img src="'+p+'"/>';}).join("");
-  openPDF('Crônica de '+DAYS[activeDay],html);
+  var allPhotos=evs.reduce(function(a,e){return a.concat(e.photos&&e.photos.length?e.photos:(e.photo?[e.photo]:[]));}, []);
+  var textHtml=report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("");
+  var photosHtml=allPhotos.length?'<div style="page-break-before:always;text-align:center"><h3 style="border-bottom:2px solid #333;padding-bottom:4px;margin-bottom:16px">📷 Fotos</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+allPhotos.map(function(p){return '<img src="'+p+'" style="width:100%;height:200px;object-fit:cover;border-radius:8px;display:block"/>';}).join('')+'</div></div>':'';
+  openPDF('Crônica de '+DAYS[activeDay],textHtml+photosHtml);
 }
 
 function exportWeekly(){
@@ -580,7 +581,7 @@ function exportWeekly(){
 function openPDF(title,html){
   var w=window.open("","_blank");
   if(!w){alert("Permita pop-ups para exportar o PDF.");return;}
-  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;font-size:13px;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}img{max-width:100%;border-radius:6px;margin:10px 0;display:block;page-break-inside:avoid;break-inside:avoid}.photos{display:flex;flex-wrap:wrap;gap:6px;page-break-inside:avoid;break-inside:avoid}.photos img{width:calc(50% - 3px);max-height:300px;object-fit:cover}</style></head><body><h1>'+title+'</h1><div class="meta">Semana de '+weekLabel()+'</div>'+html+'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body></html>');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+title+'</title><style>body{font-family:Georgia,serif;max-width:750px;margin:40px auto;padding:0 30px;color:#222;line-height:1.8}h1{font-size:2em;text-align:center;border-bottom:3px double #333;padding-bottom:12px}.meta{text-align:center;color:#666;font-style:italic;font-size:13px;margin-bottom:24px}p{text-align:justify;margin-bottom:14px}h3{font-weight:700;border-bottom:2px solid #333;padding-bottom:4px;margin-top:24px}img{max-width:100%;border-radius:6px;margin:10px 0;display:block}</style></head><body><h1>'+title+'</h1><div class="meta">Semana de '+weekLabel()+'</div>'+html+'<scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body></html>');
   w.document.close();
 }
 
