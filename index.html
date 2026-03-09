@@ -567,7 +567,12 @@ function exportPDF(){
   var evs=entries[activeDay]||[];
   var allPhotos=evs.reduce(function(a,e){return a.concat(e.photos&&e.photos.length?e.photos:(e.photo?[e.photo]:[]));}, []);
   var textHtml=report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("");
-  var photosHtml=allPhotos.length?'<div style="margin-top:24px;display:grid;grid-template-columns:'+(allPhotos.length===1?'1fr':'1fr 1fr')+';gap:12px">'+allPhotos.map(function(p){return '<img src="'+p+'" style="width:100%;height:'+(allPhotos.length===1?'400px':'260px')+';object-fit:cover;object-position:center top;border-radius:8px;display:block"/>';}).join('')+'</div>':'';
+  var photosHtml="";
+  if(allPhotos.length===1){
+    photosHtml='<div style="margin-top:24px"><img src="'+allPhotos[0]+'" style="width:100%;height:420px;object-fit:cover;object-position:center top;border-radius:8px;display:block"/></div>';
+  } else if(allPhotos.length>1){
+    photosHtml='<div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:12px">'+allPhotos.map(function(p){return '<img src="'+p+'" style="width:100%;height:260px;object-fit:cover;object-position:center top;border-radius:8px;display:block"/>';}).join('')+'</div>';
+  }
   openPDF('Crônica de '+DAYS[activeDay],textHtml+photosHtml);
 }
 
