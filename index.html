@@ -567,7 +567,7 @@ function exportPDF(){
   var evs=entries[activeDay]||[];
   var allPhotos=evs.reduce(function(a,e){return a.concat(e.photos&&e.photos.length?e.photos:(e.photo?[e.photo]:[]));}, []);
   var textHtml=report.split("\n").filter(Boolean).map(function(p){return '<p>'+p+'</p>';}).join("");
-  var photosHtml=allPhotos.length?'<div style="page-break-before:always;text-align:center"><h3 style="border-bottom:2px solid #333;padding-bottom:4px;margin-bottom:16px">📷 Fotos</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'+allPhotos.map(function(p){return '<img src="'+p+'" style="width:100%;height:200px;object-fit:cover;border-radius:8px;display:block"/>';}).join('')+'</div></div>':'';
+  var photosHtml=allPhotos.length?'<div style="margin-top:20px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+allPhotos.map(function(p){return '<img src="'+p+'" style="width:100%;height:150px;object-fit:cover;border-radius:8px;display:block;break-inside:avoid;page-break-inside:avoid"/>';}).join('')+'</div></div>':'';
   openPDF('Crônica de '+DAYS[activeDay],textHtml+photosHtml);
 }
 
